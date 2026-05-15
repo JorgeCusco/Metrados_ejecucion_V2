@@ -435,4 +435,25 @@ Se ha añadido soporte para diferenciar actividades operativas de financieras:
 - **`se_valoriza = false`**: La partida se utiliza solo para control de avance físico (unidades), pero su valor monetario es ignorado en los reportes de valorización.
 
 ---
-*Última Actualización: V26 - Abril 2026 (Módulo Admin y Valorización Selectiva)*
+
+## Parte 14: Estado Actual y Auditoría (Mayo 2026)
+
+### 14.1 Estadísticas de Carga (Producción)
+
+A fecha de mayo de 2026, el ecosistema presenta los siguientes volúmenes de datos, lo que confirma una alta actividad operativa:
+
+- **Metrados Totales**: 36,714 registros.
+- **Asignaciones de Personal**: 63,169 registros.
+- **Catálogo de Partidas**: 5,799 items activos.
+- **Ecosistema de Usuarios**: 53 profesionales activos.
+
+### 14.2 Análisis de Higiene Estructural
+
+Se han identificado componentes con baja o nula actividad que podrían ser optimizados en futuras versiones:
+
+1. **`proyecto`**: Actualmente con 0 registros. Se recomienda su uso solo si se planea multi-frente multi-base de datos.
+2. **`logs_maestro_presupuesto`**: Capacidad instalada (V26) pero sin registros actuales. Listo para activar auditoría.
+3. **`metrados_liquidaciones`**: Baja densidad (7 registros). Funciona como sandbox de aislamiento pero podría consolidarse en la tabla principal bajo un flag de estado.
+
+---
+*Última Actualización: V27 - 15 de Mayo 2026 (Auditoría de Estructura y Volumetría)*
