@@ -311,6 +311,23 @@ const getHierarchicalRows = (activeMetrados: Metrado[], partidasCatalogo: Partid
     const finalRows: any[] = [];
     const metradosRendered = new Set<string>();
 
+    // OPTIMIZACIÓN O(1): Agrupar metrados por ID destino antes de iterar
+    const metradosGrouped = new Map<string, Metrado[]>();
+    activeMetrados.forEach(m => {
+        const targetId = getMetradoTargetId(m);
+        // Guardamos también por código por seguridad legacy
+        const codeId = m.codigo_partida?.trim().toUpperCase();
+        
+        if (targetId) {
+            if (!metradosGrouped.has(targetId)) metradosGrouped.set(targetId, []);
+            metradosGrouped.get(targetId)!.push(m);
+        }
+        if (codeId && codeId !== targetId) {
+            if (!metradosGrouped.has(codeId)) metradosGrouped.set(codeId, []);
+            metradosGrouped.get(codeId)!.push(m);
+        }
+    });
+
     // 3. Segunda pasada: Construir el array lineal para registros con partida conocida
     partidasCatalogo.forEach((node: Partida) => {
         const nodeId = node.id || node.codigo.trim().toUpperCase();
@@ -322,14 +339,15 @@ const getHierarchicalRows = (activeMetrados: Metrado[], partidasCatalogo: Partid
             if (currentLevel > maxLevel) return;
         }
 
-        // Filtrar metrados que corresponden a este nodo
-        const relatedMetrados = activeMetrados.filter(m => {
-            const targetId = getMetradoTargetId(m);
-            const matches = targetId === node.id ||
-                (m.custom_partida_id && m.custom_partida_id === node.id) ||
-                (!m.partida_id && !m.custom_partida_id && m.codigo_partida.trim().toUpperCase() === node.codigo.trim().toUpperCase());
-            return matches;
-        }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        // Rescate O(1) de metrados que corresponden a este nodo
+        const nodeLegacyCode = node.codigo.trim().toUpperCase();
+        
+        // Evitar duplicados si ID y Codigo son lo mismo en la agrupación
+        const relatedMap = new Map<string, Metrado>();
+        (metradosGrouped.get(nodeId) || []).forEach(m => relatedMap.set(m.id, m));
+        (metradosGrouped.get(nodeLegacyCode) || []).forEach(m => relatedMap.set(m.id, m));
+        
+        const relatedMetrados = Array.from(relatedMap.values()).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
         // FIX: Los nodos HOJA (!es_titulo) solo se muestran si tienen metrados reales en el periodo actual.
         // Sin este fix, aparecen headers vacíos con solo datos históricos (metrado_anterior_acumulado)

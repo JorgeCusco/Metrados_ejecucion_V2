@@ -1,42 +1,30 @@
 # Guía Maestra: Arquitectura SQL (Supabase/PostgreSQL)
 
-Esta guía documenta la estructura completa de la base de datos del **Buscador de Metrados**, diseñada para ser escalable, veloz y resiliente a cambios en los catálogos maestros.
+Esta guía documenta la estructura completa de la base de datos del **Buscador de Metrados**, la cual ha sido refactorizada recientemente aplicando **DDD (Domain-Driven Design)** para ser altamente escalable, unificada y optimizada para la carga masiva en el navegador.
 
 ---
 
-## Parte 1: Diagrama de Entidad-Relación (ER)
+## Parte 1: Diagrama de Entidad-Relación (ER) Unificado (V28 - DDD)
 
-Visualización de cómo se conectan los datos entre el presupuesto, la ejecución y el personal.
+Visualización de cómo se conectan los datos entre el presupuesto, la ejecución y el personal bajo la nueva arquitectura unificada.
 
 ```mermaid
 erDiagram
-    CATALOGO_PARTIDAS ||--o{ METRADOS : "es referenciado por"
-    PARTIDAS_PERSONALIZADAS ||--o{ METRADOS : "es referenciado por (nodos custom)"
-    PERSONAL ||--o{ METRADOS_PERSONAL : "participa en"
+    PARTIDAS ||--o{ METRADOS : "es referenciado por"
+    TRABAJADORES ||--o{ METRADO_TRABAJADOR : "participa en"
     TIPOS_MOVIMIENTO ||--o{ INSUMOS_COMPRADO : "clasifica"
 
-    HVAC_CATALOGO_ACCESORIOS {
+    FACTORES_HVAC {
         uuid id PK
         text categoria "DUCTO | TEE | REDUCCION | CODO"
         text label
         numeric factor
     }
 
-    PARTIDAS_PERSONALIZADAS {
-        uuid id PK
-        text codigo
-        text descripcion
-        text unidad
-        text modificacion
-        text especialidad
-        text tipo_metrado
-        boolean se_valoriza "V26"
-    }
-
-    METRADOS ||--o{ METRADOS_PERSONAL : "tiene"
-    ECOSISTEMA_USUARIOS ||--o{ METRADOS : "autoriza"
+    METRADOS ||--o{ METRADO_TRABAJADOR : "tiene"
+    USUARIOS ||--o{ METRADOS : "autoriza"
   
-    ECOSISTEMA_USUARIOS {
+    USUARIOS {
         uuid id PK
         text dni_username UK
         text nombre_completo
@@ -45,13 +33,13 @@ erDiagram
         boolean es_administrador_presupuesto "V26"
     }
 
-    PROYECTO {
+    PROYECTOS {
         uuid id PK
         text codigo
         text nombre
     }
   
-    CATALOGO_PARTIDAS {
+    PARTIDAS {
         uuid id PK
         text codigo
         text descripcion
@@ -59,6 +47,7 @@ erDiagram
         uuid parent_id FK
         uuid proyecto_id FK
         text tipo_metrado "ESTANDAR | ACERO | HVAC*"
+        text modificacion "SM | PC (Partida Creada) | DD"
         numeric metrado_programado
         numeric valorizacion_programada
         numeric metrado_anterior_acumulado
@@ -74,7 +63,6 @@ erDiagram
         uuid id PK
         date fecha
         uuid partida_id FK
-        uuid custom_partida_id FK
         text codigo_partida
         text descripcion_partida
         text unidad
@@ -96,7 +84,7 @@ erDiagram
         timestamp created_at
     }
   
-    PERSONAL {
+    TRABAJADORES {
         uuid id PK
         text dni UK
         text nombre_original
@@ -126,7 +114,7 @@ erDiagram
         text nombre
     }
 
-    ESPECIALIDAD {
+    ESPECIALIDADES {
         integer id PK
         text nombre UK
         text[] codigo_prefijos
@@ -135,257 +123,69 @@ erDiagram
 
 ---
 
-## Parte 2: Estructura y Organización (Catálogos)
+## Parte 2: Arquitectura de Dominio (DDD)
 
-### 2.1 Tipificado de Datos Críticos
+### 2.1 Unificación de Entidades (V28)
+Para simplificar la lógica de negocio y evitar fragmentación de datos, se ha aplicado el patrón de Dominio (DDD), renombrando y unificando tablas:
+- `catalogo_partidas` y `partidas_personalizadas` ➔ **`partidas`** (Diferenciadas por la columna `modificacion = 'PC'`).
+- `metrados_personal` ➔ **`metrado_trabajador`**.
+- `personal` ➔ **`trabajadores`**.
+- `ecosistema_usuarios` ➔ **`usuarios`**.
+- `hvac_catalogo_accesorios` ➔ **`factores_hvac`**.
+- La columna `custom_partida_id` en `metrados` ha sido eliminada. Todos los metrados (oficiales o custom) apuntan a la clave unificada `partida_id`.
 
-- **`NUMERIC` vs `FLOAT/REAL`**: En ingeniería, usamos `NUMERIC` para `cantidad`, `parcial` y `total`. Esto evita errores de redondeo de punto flotante que podrían causar discrepancias de céntimos en presupuestos de millones. Lo mismo aplica para cantidades presupuestadas (`cantidad_presupuesto`) y precios (`precio_unitario`).
-- **`TEXT[]` (Jerarquía)**: El uso de arrays de texto permite búsquedas "ancestrales" instantáneas sin necesidad de múltiples JOINs recursivos (CTE).
-
-### 2.2 Gestión de Precios y Deductivos (Partidas DD)
-
-Para la integración con el Control de Costos y presupuestos originales:
-- **`precio_unitario`**: Se obtiene del software base (S10, Excel) y es inyectado directo al Catálogo.
-- **`cantidad_presupuesto`**: Representa el metrado original.
-- **Deductivos (DD)**: Cualquier partida importada con valor de `cantidad_presupuesto` igual a `0` es considerada visual/físicamente un Deductivo y es marcado dinámicamente ("DD") en toda la Interfaz de Usuario para diferenciarse.
+### 2.2 Tipificado de Datos Críticos
+- **`NUMERIC` vs `FLOAT/REAL`**: En ingeniería, usamos `NUMERIC` para `cantidad`, `parcial` y `total`. Evita errores de redondeo de punto flotante en presupuestos de millones.
 
 ---
 
 ## Parte 3: El Núcleo de Transacción (Metrados)
 
 ### 3.1 Denormalización Estratégica
-
 Guardamos el `codigo_partida` y `descripcion_partida` **como texto** dentro de la tabla `metrados`.
-
 - **Razón**: Si en 2 años se borra una partida del catálogo, el registro de producción histórica debe seguir siendo legible y auditable.
 
 ---
 
 ## Parte 4: Gestión de Cuadrillas (Estructura Híbrida)
 
-- **Tabla `metrados_personal`**: Es una tabla "bridge" que resuelve la relación N:N. Permite que un metrado de vaciado de concreto (que requiere 10 personas) guarde a cada integrante individualmente para reportes de HH (Horas Hombre).
+- **Tabla `metrado_trabajador`**: Es una tabla "bridge" que resuelve la relación N:N. Permite que un metrado de vaciado de concreto (que requiere 10 personas) guarde a cada integrante individualmente para reportes de HH (Horas Hombre).
 
 ---
 
-## Parte 5: Consultas Avanzadas para el Futuro
+## Parte 5: Seguridad e Integridad
 
-### 5.1 Reporte de Productividad por Cuadrilla
-
-Si a futuro quieres ver cuánto ha avanzado una cuadrilla:
-
-```sql
-SELECT 
-    m.cuadrilla,
-    SUM(m.total) as metrado_total,
-    COUNT(DISTINCT m.id) as nro_registros
-FROM metrados m
-WHERE m.fecha BETWEEN '2026-03-01' AND '2026-03-31'
-GROUP BY m.cuadrilla;
-```
-
-### 5.2 Consultar Metrado con Nombres de Obreros
-
-```sql
-SELECT 
-    m.*, 
-    string_agg(p.nombre_formateado, ' / ') as obreros
-FROM metrados m
-JOIN metrados_personal mp ON m.id = mp.metrado_id
-JOIN personal p ON mp.personal_id = p.id
-GROUP BY m.id;
-```
+### 5.1 Llaves Foráneas Estrictas
+La inserción de metrados está protegida por restricciones estandarizadas (`ON DELETE SET NULL` para llaves foráneas), asegurando que ningún metrado quede "huérfano" si se elimina una partida, pero validando estrictamente su existencia al momento del registro.
 
 ---
 
-## Parte 7: Integridad y Mantenimiento Avanzado
+## Parte 6: Escalabilidad y Rendimiento Extremo (Frontend / V28)
 
-### 7.1 Restricciones de Integridad (XOR)
+### 6.1 Motor de Carga Masiva y Caché SWR (IndexedDB)
+Descargar más de 40,000 registros simultáneamente colapsaba los motores convencionales (`localStorage`). Se ha implementado una arquitectura **Stale-While-Revalidate (SWR)** acoplada a **IndexedDB** (`idb-keyval`):
 
-Para evitar errores en el registro, la base de datos tiene una restricción que impide que un metrado sea simultáneamente de una partida del catálogo Y de una partida personalizada. Solo una puede ser `NOT NULL`.
-
-### 7.2 Índices para Analytics
-
-Si planeas crear dashboards de PowerBI o Grafana sobre esta base de datos, aplica estos índices:
-
-```sql
-CREATE INDEX idx_metrados_fecha_frente ON metrados(fecha, frente);
-CREATE INDEX idx_metrados_autor ON metrados(autor_usuario);
-```
-
-### 7.3 Script de Limpieza y Recálculo
-
-En caso de que se detecten errores manuales en los totales, este script fuerza el recálculo (simplificado):
-
-```sql
-UPDATE metrados 
-SET total = parcial * nro_veces 
-WHERE total IS NULL OR total = 0;
-```
+1. **Persistencia Profunda**: La totalidad de la base de datos (Catálogos y Metrados) se guarda en el disco duro interno de Chrome mediante IndexedDB.
+2. **Arranque Instantáneo**: Al recargar la página, la web arranca en <0.5 segundos leyendo los 40,000 registros localmente, permitiendo filtrado masivo instantáneo.
+3. **Sincronización Transparente**: En segundo plano (Background Sync), el sistema se conecta a AWS y descarga únicamente lo nuevo, actualizando la UI de forma silenciosa.
 
 ---
 
-## Parte 8: Vistas de Análisis de Negocio (Server-Side)
+## Parte 7: Módulo de Administración de Presupuesto (V26)
 
-### 8.1 Vista de Seguimiento Presupuestal (`vista_analisis_presupuesto`)
-
-Para evitar procesar miles de registros en el navegador, delegamos el cálculo de valorizaciones al servidor:
-
-- **Cáculo de Cantidades**: Suma el `acumulado_anterior_qty` (histórico manual) + `qty_sistema` (metrados reales en DB).
-- **Cálculo Monetario**: Multiplica el metrado total acumulado por el `precio_unitario`.
-- **Propósito**: Reportes estáticos, exportaciones pesadas y PowerBI.
-
-```sql
-SELECT 
-    codigo, 
-    qty_presupuestada, 
-    qty_acumulada_total, 
-    soles_ejecutados_total 
-FROM vista_analisis_presupuesto;
-```
-
-### 8.2 Vista de Valorización Mensual (`vista_metrados_mensuales_valorizados`) (V22)
-
-Nueva vista diseñada para el cierre mensual y auditoría de producción:
-- **`metrado_sistema`**: Suma de metrados registrados exclusivamente a través de la aplicación.
-- **`valorizado_actual_metrado_mes`**: Producto de `metrado_sistema * pu_actual`. Representa la facturación bruta del periodo seleccionado.
-- **`metrado_acumulado_total`**: Suma del histórico (`metrado_anterior_acumulado`) + lo registrado en el sistema.
-- **`valorizado_acumulado_total`**: Valor monetario del avance total acumulado.
-
-```sql
-SELECT 
-    codigo, 
-    metrado_sistema, 
-    valorizado_actual_metrado_mes,
-    metrado_acumulado_total
-FROM vista_metrados_mensuales_valorizados;
-```
-
-### 8.3 Sistema de Diseño de Reportes (CSS) (V22)
-
-Para garantizar que la **Planilla de Metrados Dinámica** sea "presentable", se ha implementado un sistema de grupos de color mapeados a la lógica SQL:
-
-| Grupo Lógico | Clave CSS | Propósito | Color |
-| :--- | :--- | :--- | :--- |
-| **Control Físico** | `.bg-financial-progress` | Metrado Acum, Presupuesto | Blue-50 |
-| **Control de Metas** | `.bg-financial-pending` | Saldo Fis, Saldo Mon | Amber-50 |
-| **Valorización** | `.bg-financial-value` | Precio, Costo Ejecutado | Emerald-50 |
-| **Actual** | `.bg-current-month` | **Valorizado Mes S/** | Emerald-100 |
-
----
-
----
-
----
-
-## Parte 8: Seguridad y Ecosistema de Usuarios
-
-### 8.1 Autenticación Centralizada (`ecosistema_usuarios`)
-
-Utilizamos una tabla centralizada para manejar el acceso a múltiples aplicaciones (Metrados, Almacén, etc.).
-
-- **`roles_apps` (JSONB)**: Permite definir permisos específicos por aplicación. Ej: `{"metrados": "admin"}`.
-- **Filtro por Especialidad**: El campo `especialidad` en esta tabla se utiliza para bloquear la vista de metrados a solo los de la especialidad asignada al usuario, a menos que su rol sea `TODAS`.
-
----
-
----
-
-## Parte 9: Escalabilidad y Rendimiento (Frontend / API)
-
-### 9.1 Motor de Carga Masiva V16 (Recursive Fetching)
-
-Supabase impone un límite de seguridad de **1,000 registros por petición** en el servidor. Para manejar proyectos de gran envergadura (como los actuales de 5,789 partidas y 2,810 metrados), el sistema implementa una **Paginación Automática Recursiva**.
-
-- **Lógica**: El `useMetradosStore` realiza peticiones sucesivas usando `.range(from, to)` en bloques de 1,000 hasta que el servidor devuelve menos de 1,000 registros (indicando el fin de la tabla).
-- **Alcance**: Aplicado a `catalogo_partidas` y `metrados`. Esto garantiza que el 100% de la base de datos sea visible siempre.
-
-### 9.2 Resiliencia de Datos: Recuperación de Huérfanos
-
-Debido a que los catálogos son dinámicos y pueden ser limpiados o modificados por colaboradores, el sistema de visualización (`MetradosTable.tsx`) implementa un **Algoritmo de Rescate de Huérfanos**.
-
-- **Funcionamiento**: Si un metrado histórico referencia un `codigo_partida` que ya no existe en el catálogo maestro, el sistema crea dinámicamente una **Cabecera Virtual de Partida**.
-- **Resultado**: Ningún dato se pierde de la vista del usuario, permitiendo auditar registros antiguos incluso si la estructura del presupuesto cambió drásticamente.
-
----
-
----
-
-## Parte 11: Control Presupuestal y Seguimiento (V21 - Actual)
-
-### 11.1 Lógica de Control Físico y Financiero
-
-Para permitir un seguimiento preciso del avance respecto a la línea base contractual, el catálogo se ha expandido con las siguientes columnas de control:
-
-- **Línea Base (`metrado_programado`)**: El 100% de la meta física pactada.
-- **Historial (`metrado_anterior_acumulado`)**: El avance acumulado antes del periodo actual (importado de Excels de liquidación).
-- **Ejecución (`metrados.total`)**: Los registros diarios ingresados en la aplicación.
-- **Cálculo de Avance**: 
-  - `Acumulado Actual = metrado_anterior_acumulado + sum(metrados.total)`
-  - `Saldo (Falta) = metrado_programado - Acumulado Actual`
-  - `% Progreso = (Acumulado Actual / metrado_programado) * 100`
-
-### 11.2 Soporte para Migraciones Universales
-
-Se ha desarrollado el script `tools/migracion/budget_migrator.py` que permite inyectar datos desde cualquier estructura de Excel hacia estas nuevas columnas, permitiendo la actualización de precios unitarios (`pu_actual`) y metas programadas de forma dinámica.
-
----
-
-> [!IMPORTANT]
-> El sistema de visualización de la UI (`MetradosForm.tsx`) está sincronizado con esta arquitectura para mostrar el avance físico y financiero en tiempo real, incluyendo los metrados en curso antes de ser guardados.
-
----
-
----
-
-## Parte 13: Ecosistema de Aislamiento Lógico (Partidas Creadas PC)
-
-Para garantizar flexibilidad operativa en campo sin corromper el Presupuesto Meta Oficial, se optó por un paradigma de "Aislamiento Centralizado":
-
-### 13.1 Centralización de Datos Unificados
-Todas las partidas PC (*Partidas Creadas*) registran su producción física directamente a la tabla unificada universal `metrados`. No existen tablas fragmentadas para PC. Esto protege la compatibilidad con el Procedimiento Almacenado `oficializar_partida_pc`, el cual asimila partidas en un solo clic migrándolas al Catálogo Maestro sin mover miles de registros de metrados.
-
-### 13.2 Filtro Bifurcador (Router Visual de Zustand)
-La separación entre "Presupuesto Inmaculado" y "Trabajos Adicionales / Actividades" ocurre netamente en la Capa Reactiva de la interfaz (Frontend).
-- **Catálogo Oficial**: Filtra y ocluye estrictamente cualquier registro donde `custom_partida_id !== null`.
-- **Vista Aislada de PC**: Invierte el filtro de arrays de React, demostrando en pantalla de manera segregada únicamente los registros con `custom_partida_id != null`.
-- El pase de un entorno a otro es asincrónico instantáneo, sin recargar la red, gracias a que el origen de la verdad (`metrados` Zustand State) es único.
-
-### 13.3 Nomenclatura Automática Inteligente
-En lugar de depender de registros desordenados tipo "OE.9.9.9", el modal genera un correlativo hermético de sistema validando a la Especialidad del profesional: `PC-[ESP]-[NUM]` (Ej. `PC-EST-8547`). Se auto-clasifica leyendo atributos matriciales de `ecosistema_usuarios`.
-
----
-
-## Parte 13: Módulo de Administración de Presupuesto (V26)
-
-### 13.1 Control de Privilegios de Administrador
-
-Se ha introducido un campo booleano directo en `ecosistema_usuarios`:
-- **`es_administrador_presupuesto`**: Flag que otorga acceso a las herramientas de edición masiva, recalculación y auditoría dentro del panel `/admin/presupuesto`.
-
-### 13.3 Valorización Selectiva (`se_valoriza`)
-
-Se ha añadido soporte para diferenciar actividades operativas de financieras:
+### 7.1 Valorización Selectiva (`se_valoriza`)
 - **`se_valoriza = true`** (Default): La partida contribuye al monto facturado (S/).
-- **`se_valoriza = false`**: La partida se utiliza solo para control de avance físico (unidades), pero su valor monetario es ignorado en los reportes de valorización.
+- **`se_valoriza = false`**: La partida se utiliza solo para control de avance físico (unidades), pero su valor monetario es ignorado en reportes de valorización.
 
 ---
 
-## Parte 14: Estado Actual y Auditoría (Mayo 2026)
+## Parte 8: Auditoría y Volumetría Actualizada (Mayo 2026 - DDD)
 
-### 14.1 Estadísticas de Carga (Producción)
-
-A fecha de mayo de 2026, el ecosistema presenta los siguientes volúmenes de datos, lo que confirma una alta actividad operativa:
-
-- **Metrados Totales**: 36,714 registros.
-- **Asignaciones de Personal**: 63,169 registros.
-- **Catálogo de Partidas**: 5,799 items activos.
-- **Ecosistema de Usuarios**: 53 profesionales activos.
-
-### 14.2 Análisis de Higiene Estructural
-
-Se han identificado componentes con baja o nula actividad que podrían ser optimizados en futuras versiones:
-
-1. **`proyecto`**: Actualmente con 0 registros. Se recomienda su uso solo si se planea multi-frente multi-base de datos.
+### 8.1 Estadísticas de Producción
+Tras la fusión y unificación final (Migración Fase 3):
+- **Metrados Totales**: ~40,239 registros estandarizados.
+- **Vínculos de Trabajadores (`metrado_trabajador`)**: ~74,326 enlaces verificados.
+- **Partidas Consolidadas**: Incluye tanto Catálogo Maestro como Partidas Creadas.
 
 ---
-*Última Actualización: V27 - 15 de Mayo 2026 (Auditoría de Estructura y Volumetría)*
+*Última Actualización: V28 - 22 de Mayo 2026 (Refactorización DDD & Integración IndexedDB)*

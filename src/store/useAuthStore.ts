@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
 
             login: async (username, password) => {
                 const { data, error } = await supabase
-                    .from('ecosistema_usuarios')
+                    .from('usuarios')
                     .select('*')
                     .eq('dni_username', username)
                     .eq('password', password)
@@ -86,10 +86,10 @@ export const useAuthStore = create<AuthState>()(
             fetchSystemConfig: async () => {
                 try {
                     const { data } = await (supabase
-                        .from('ecosistema_usuarios')
+                        .from('usuarios')
                         .select('roles_apps')
                         .eq('dni_username', 'SISTEMA')
-                        .single() as any);
+                        .maybeSingle() as any);
                     
                     const roles = data?.roles_apps as any;
                     if (roles?.metrados_lock) {

@@ -1,5 +1,18 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
+
+const idbStorage: StateStorage = {
+    getItem: async (name: string): Promise<string | null> => {
+        return (await get(name)) || null;
+    },
+    setItem: async (name: string, value: string): Promise<void> => {
+        await set(name, value);
+    },
+    removeItem: async (name: string): Promise<void> => {
+        await del(name);
+    },
+};
 import { Metrado, Partida } from '../types';
 import { supabase } from '../lib/supabase';
 import { mockPartidas } from '../data/mockDB_1';
@@ -80,7 +93,7 @@ export const useMetradosStore = create<MetradosState>()(
                     // Si el metrado viene sin ID porque es del JSON genérico, buscar su UUID en la nube
                     // RESOLUCIÓN DE IDs (Priorizar los pasados por el UI, si no buscar por código)
                     let resolvedPartidaId = metrado.partida_id;
-                    let resolvedCustomId = metrado.custom_partida_id;
+                    
 
                     // V7.2.4: Validación de UUID Ultra-Resiliente
                     const isUUID = (id: any) => {
@@ -93,23 +106,20 @@ export const useMetradosStore = create<MetradosState>()(
                         console.warn(`[V7.2.4] Purgando partida_id inválido: "${resolvedPartidaId}"`);
                         resolvedPartidaId = undefined;
                     }
-                    if (resolvedCustomId && !isUUID(resolvedCustomId)) {
-                        console.warn(`[V7.2.4] Purgando custom_id inválido: "${resolvedCustomId}"`);
-                        resolvedCustomId = undefined;
-                    }
+                    
 
                     // Si el metrado viene sin ID real (ej. era de un mock), intentar buscarlo en la nube por su CÓDIGO
-                    if (!resolvedPartidaId && !resolvedCustomId) {
+                    if (!resolvedPartidaId) {
                         const isCustom = metrado.modificacion === 'PC'; 
                         if (isCustom) {
-                            const { data: catData } = await (supabase.from('partidas_personalizadas') as any).select('id').eq('codigo', metrado.codigo_partida).maybeSingle();
-                            if (catData) resolvedCustomId = catData.id;
+                            const { data: catData } = await (supabase.from('partidas') as any).select('id').eq('codigo', metrado.codigo_partida).eq('modificacion', 'PC').maybeSingle();
+                            if (catData) resolvedPartidaId = catData.id;
                         } else {
                             // Fetch de catálogo maestro usando el código y el proyecto
                             const projCode = (metrado.proyecto || 'hospital').toUpperCase().substring(0, 4);
                             const { data: proj } = await (supabase.from('proyectos') as any).select('id').eq('codigo', projCode).maybeSingle();
                             if (proj) {
-                                const { data: catData } = await (supabase.from('catalogo_partidas') as any).select('id')
+                                const { data: catData } = await (supabase.from('partidas') as any).select('id')
                                     .eq('codigo', metrado.codigo_partida).eq('proyecto_id', proj.id).maybeSingle();
                                 if (catData) resolvedPartidaId = catData.id;
                             }
@@ -117,7 +127,7 @@ export const useMetradosStore = create<MetradosState>()(
                     }
 
                     // LOG DE DEPURACIÓN CRÍTICO (Ver en F12)
-                    console.log(`[V7.2.4 Insert] codigo: ${metrado.codigo_partida} | p_id: ${resolvedPartidaId || 'null'} | c_id: ${resolvedCustomId || 'null'}`);
+                    console.log(`[V7.2.4 Insert] codigo: ${metrado.codigo_partida} | p_id: ${resolvedPartidaId || 'null'} | c_id: null`);
 
                     // Payload único para insert y reintento (V8.1.2)
                     const payloadToInsert = {
@@ -127,7 +137,7 @@ export const useMetradosStore = create<MetradosState>()(
                         nivel: metrado.nivel,
                         cuadrilla: metrado.cuadrilla,
                         partida_id: resolvedPartidaId || null,
-                        custom_partida_id: resolvedCustomId || null,
+                        
                         codigo_partida: metrado.codigo_partida,
                         descripcion_partida: metrado.descripcion_partida,
                         unidad: metrado.unidad,
@@ -158,7 +168,7 @@ export const useMetradosStore = create<MetradosState>()(
                         console.warn('[V8.1] FK Error detectado. Reintentando insertar sin referencias de catálogo para salvar el dato...');
                         const fallbackPayload = { ...payloadToInsert };
                         delete (fallbackPayload as any).partida_id;
-                        delete (fallbackPayload as any).custom_partida_id;
+                        
                         const { data: retryData, error: retryError } = await (supabase.from(tableName) as any).insert([fallbackPayload]).select().single();
                         
                         if (retryError) {
@@ -187,10 +197,10 @@ export const useMetradosStore = create<MetradosState>()(
                     if (validObrerosIds.length > 0) {
                         const personalLinks = validObrerosIds.map((id: string) => ({
                             metrado_id: (insertData as any).id,
-                            personal_id: id
+                            trabajador_id: id
                         }));
                         
-                        const { error: errorLinks } = await (supabase.from('metrados_personal') as any).insert(personalLinks as any);
+                        const { error: errorLinks } = await (supabase.from('metrado_trabajador') as any).insert(personalLinks as any);
                         if (errorLinks) console.error('Error bindeando personal a metrado (FK Error):', errorLinks);
                     }
 
@@ -228,22 +238,27 @@ export const useMetradosStore = create<MetradosState>()(
                     const promises = [];
                     
                     // V18 Optimization: Join ligero recuperando sólo personal_id (reducción payload ~80%)
-                    const selectQuery = '*, metrados_personal(personal_id), catalogo_partidas(modificacion)';
+                    const selectQuery = '*, metrado_trabajador(trabajador_id), partidas(modificacion)';
 
-                    for (let i = 0; i < pages; i++) {
-                        const fromRange = i * step;
-                        const toRange = fromRange + step - 1;
-                        promises.push(
-                            supabase
-                                .from(tableName)
-                                .select(selectQuery)
-                                .order('fecha', { ascending: false })
-                                .range(fromRange, toRange)
-                        );
+                    // V18.1 Optimization: Concurrency limit (Batching) to prevent 500 Errors / Pool exhaustion
+                    const batchSize = 5;
+                    const results = [];
+                    for (let i = 0; i < pages; i += batchSize) {
+                        const batchPromises = [];
+                        for (let j = 0; j < batchSize && (i + j) < pages; j++) {
+                            const fromRange = (i + j) * step;
+                            const toRange = fromRange + step - 1;
+                            batchPromises.push(
+                                supabase
+                                    .from(tableName)
+                                    .select(selectQuery)
+                                    .order('fecha', { ascending: false })
+                                    .range(fromRange, toRange)
+                            );
+                        }
+                        const batchResults = await Promise.all(batchPromises);
+                        results.push(...batchResults);
                     }
-
-                    // 3. Ejecutar todas en paralelo
-                    const results = await Promise.all(promises);
                     
                     // 4. Concatenar resultados
                     let allMetrados: any[] = [];
@@ -262,8 +277,8 @@ export const useMetradosStore = create<MetradosState>()(
                         const allPersonal = usePersonalStore.getState().personal;
                         
                         // Extraer IDs bindeados en metrados_personal
-                        let personalIds = (dbRow.metrados_personal || [])
-                            .map((rel: any) => rel.personal_id)
+                        let personalIds = (dbRow.metrado_trabajador || [])
+                            .map((rel: any) => rel.trabajador_id)
                             .filter(Boolean);
                         
                         let personalList = [];
@@ -283,7 +298,7 @@ export const useMetradosStore = create<MetradosState>()(
                             .join(' / ');
 
                         return {
-                            modificacion: dbRow.catalogo_partidas?.modificacion || undefined,
+                            modificacion: dbRow.partidas?.modificacion || undefined,
                             id: dbRow.id,
                             fecha: dbRow.fecha,
                             frente: dbRow.frente,
@@ -293,7 +308,7 @@ export const useMetradosStore = create<MetradosState>()(
                             obrero_nombre: formattedCuadrilla || undefined, 
                             obreros_ids: obrerosIds,
                             partida_id: dbRow.partida_id || undefined,
-                            custom_partida_id: dbRow.custom_partida_id || undefined,
+                            
                             codigo_partida: dbRow.codigo_partida || '',
                             descripcion_partida: dbRow.descripcion_partida || '',
                             elemento: dbRow.elemento,
@@ -338,7 +353,7 @@ export const useMetradosStore = create<MetradosState>()(
                 // V7.2.3: Validación de IDs en Update para evitar Error 23503
                 const isUUID = (id: any) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
                 if ((dbPayload as any).partida_id && !isUUID((dbPayload as any).partida_id)) delete (dbPayload as any).partida_id;
-                if ((dbPayload as any).custom_partida_id && !isUUID((dbPayload as any).custom_partida_id)) delete (dbPayload as any).custom_partida_id;
+                
 
                 const tableName = 'metrados';
                 const { error } = await (supabase.from(tableName) as any).update(dbPayload as any).eq('id', id);
@@ -374,7 +389,7 @@ export const useMetradosStore = create<MetradosState>()(
                 try {
                     // 1. Insertar en Supabase
                     const { data, error } = await (supabase
-                        .from('partidas_personalizadas') as any)
+                        .from('partidas') as any)
                         .insert([{
                             codigo: partida.codigo,
                             descripcion: partida.descripcion,
@@ -422,9 +437,8 @@ export const useMetradosStore = create<MetradosState>()(
             fetchCustomPartidas: async () => {
                 try {
                     const { data, error } = await (supabase
-                        .from('partidas_personalizadas') as any)
-                        .select('*')
-                        .order('codigo') as any;
+                        .from('partidas') as any)
+                        .select('*').eq('modificacion', 'PC').order('codigo') as any;
 
                     if (error) {
                         console.error('Error fetching custom partidas:', error);
@@ -457,7 +471,7 @@ export const useMetradosStore = create<MetradosState>()(
             fetchHvacCatalog: async () => {
                 try {
                     const { data, error } = await supabase
-                        .from('hvac_catalogo_accesorios')
+                        .from('factores_hvac')
                         .select('*')
                         .order('categoria', { ascending: true })
                         .order('label', { ascending: true });
@@ -484,7 +498,7 @@ export const useMetradosStore = create<MetradosState>()(
 
                     // MOTOR DE CARGA MASIVA V18: Paralelismo para Catálogo (Bypass límite 1000)
                     const { count, error: countError } = await supabase
-                        .from('catalogo_partidas')
+                        .from('partidas')
                         .select('*', { count: 'exact', head: true });
 
                     if (countError) throw countError;
@@ -494,19 +508,25 @@ export const useMetradosStore = create<MetradosState>()(
                     const pages = Math.ceil(totalRows / step);
                     const promises = [];
 
-                    for (let i = 0; i < pages; i++) {
-                        const fromRange = i * step;
-                        const toRange = fromRange + step - 1;
-                        promises.push(
-                            supabase
-                                .from('catalogo_partidas')
-                                .select('*')
-                                .order('codigo', { ascending: true })
-                                .range(fromRange, toRange)
-                        );
+                    // MOTOR DE CARGA MASIVA V18.1: Loteador Concurrente
+                    const batchSize = 5;
+                    const results = [];
+                    for (let i = 0; i < pages; i += batchSize) {
+                        const batchPromises = [];
+                        for (let j = 0; j < batchSize && (i + j) < pages; j++) {
+                            const fromRange = (i + j) * step;
+                            const toRange = fromRange + step - 1;
+                            batchPromises.push(
+                                supabase
+                                    .from('partidas')
+                                    .select('*')
+                                    .order('codigo', { ascending: true })
+                                    .range(fromRange, toRange)
+                            );
+                        }
+                        const batchResults = await Promise.all(batchPromises);
+                        results.push(...batchResults);
                     }
-
-                    const results = await Promise.all(promises);
                     let allCatalogo: any[] = [];
                     for (const res of results) {
                         if (res.error) throw res.error;
@@ -568,7 +588,7 @@ export const useMetradosStore = create<MetradosState>()(
 
                     // 2. Update en Supabase
                     const { error } = await (supabase
-                        .from('catalogo_partidas') as any)
+                        .from('partidas') as any)
                         .update(payload as any)
                         .eq('id', id);
 
@@ -605,7 +625,7 @@ export const useMetradosStore = create<MetradosState>()(
                     delete (payload as any).is_template;
 
                     const { data, error } = await (supabase
-                        .from('catalogo_partidas') as any)
+                        .from('partidas') as any)
                         .insert([payload as any])
                         .select()
                         .single();
@@ -630,9 +650,10 @@ export const useMetradosStore = create<MetradosState>()(
         }),
         {
             name: 'inkaia-metrados-storage',
-            storage: createJSONStorage(() => localStorage),
+            storage: createJSONStorage(() => idbStorage),
             partialize: (state) => ({ 
-                context: state.context 
+                context: state.context,
+                metrados: state.metrados
             }),
         }
     )

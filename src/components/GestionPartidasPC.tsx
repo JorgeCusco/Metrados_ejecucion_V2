@@ -71,7 +71,7 @@ export const GestionPartidasPC: React.FC<GestionPartidasPCProps> = ({ onClose, i
         setLoading(true);
         try {
             // 1. Obtener todas las partidas personalizadas
-            const { data: pcs, error: errPc } = await (supabase.from('partidas_personalizadas') as any)
+            const { data: pcs, error: errPc } = await (supabase.from('partidas') as any)
                 .select('*').order('codigo') as any;
             if (errPc) throw errPc;
 
@@ -160,7 +160,7 @@ export const GestionPartidasPC: React.FC<GestionPartidasPCProps> = ({ onClose, i
             // Buscar parent_id por código
             let parentId: string | null = null;
             if (oficData.parent_codigo) {
-                const { data: parentRow } = await (supabase.from('catalogo_partidas') as any)
+                const { data: parentRow } = await (supabase.from('partidas') as any)
                     .select('id').eq('codigo', oficData.parent_codigo.trim()).maybeSingle() as any;
                 parentId = parentRow?.id || null;
             }
@@ -204,7 +204,7 @@ export const GestionPartidasPC: React.FC<GestionPartidasPCProps> = ({ onClose, i
         if (!modalPU || isReadOnly) return;
         setPuLoading(true);
         try {
-            const { error } = await (supabase.from('partidas_personalizadas') as any)
+            const { error } = await (supabase.from('partidas') as any)
                 .update({ precio_unitario: nuevoPU })
                 .eq('id', modalPU.id);
             if (error) throw error;
@@ -225,7 +225,7 @@ export const GestionPartidasPC: React.FC<GestionPartidasPCProps> = ({ onClose, i
             return;
         }
         if (!confirm(`¿Eliminar la partida PC "${pc.codigo} - ${pc.descripcion}"? Esta acción es irreversible.`)) return;
-        const { error } = await (supabase.from('partidas_personalizadas') as any).delete().eq('id', pc.id);
+        const { error } = await (supabase.from('partidas') as any).delete().eq('id', pc.id);
         if (error) { alert('Error: ' + error.message); return; }
         await cargarPartidas();
         await fetchCustomPartidas();
@@ -249,7 +249,7 @@ export const GestionPartidasPC: React.FC<GestionPartidasPCProps> = ({ onClose, i
         setRenombreResult(null);
         try {
             // 1. Actualizar codigo + descripcion en partidas_personalizadas
-            const { error: errPc } = await (supabase.from('partidas_personalizadas') as any)
+            const { error: errPc } = await (supabase.from('partidas') as any)
                 .update({ codigo: codigoNuevo, descripcion: descNueva })
                 .eq('id', modalRenombrar.id);
             if (errPc) throw errPc;

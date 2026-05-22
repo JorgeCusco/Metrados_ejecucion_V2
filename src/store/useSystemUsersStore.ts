@@ -12,15 +12,15 @@ export const useSystemUsersStore = create<SystemUsersState>()((set) => ({
     
     fetchSystemUsers: async () => {
         const { data, error } = await supabase
-            .from('ecosistema_usuarios')
+            .from('usuarios')
             .select('id, dni_username, nombre_completo, especialidad, roles_apps')
-            .eq('is_active', true)
-            .order('nombre_completo');
+            .eq('dni_username', 'SISTEMA')
+            .maybeSingle();
             
         if (!error && data) {
-            set({ systemUsers: data as User[] });
+            set({ systemUsers: [data] as User[] });
             if (typeof window !== 'undefined') {
-                (window as any).__systemUsersCache = data;
+                (window as any).__systemUsersCache = [data];
             }
         }
     }
