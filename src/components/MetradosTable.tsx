@@ -51,8 +51,8 @@ const formatNumber = (num: number) => {
 
 const TitleRow = React.memo(({ r, getIndentLevel }: any) => (
     <tr className="bg-slate-100 border-b border-slate-200">
-        <td className="w-[60px] min-w-[60px] max-w-[60px] px-1 py-1 text-center font-mono text-[9px] text-slate-400 overflow-hidden"></td>
-        <td className="w-[85px] min-w-[85px] px-1 py-1 font-mono text-[10px] tracking-wider text-center text-slate-500">
+        <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1 text-center font-mono text-[9px] text-slate-400 overflow-hidden"></td>
+        <td className="w-[105px] min-w-[105px] px-1 py-1 font-mono text-[10px] tracking-wider text-center text-slate-500">
             {r.codigo}
         </td>
         <td colSpan={11} className="px-1 py-1 uppercase text-[10px] font-black tracking-[0.15em] text-slate-600"
@@ -64,8 +64,8 @@ const TitleRow = React.memo(({ r, getIndentLevel }: any) => (
 
 const VirtualElementRow = React.memo(({ r, getIndentLevel, onGroupUpdate, isReadOnly }: any) => (
     <tr className="bg-slate-50/50 border-b border-slate-100 group">
-        <td className="w-[60px] min-w-[60px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden"></td>
-        <td className="w-[85px] min-w-[85px] px-1 py-1.5 text-left"></td>
+        <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden"></td>
+        <td className="w-[105px] min-w-[105px] px-1 py-1.5 text-left"></td>
         <td className="px-1 py-1.5" colSpan={11} style={{ paddingLeft: `${getIndentLevel(r.codigo_partida) * 0.2 + 0.25}rem` }}>
             <div className="flex items-center gap-2">
                 <span className="text-blue-300 font-black text-[10px]">▼</span>
@@ -97,8 +97,8 @@ const HeaderRow = React.memo(({ r, partidaTotals, showCostView, getIndentLevel, 
 
     return (
         <tr className={`${hasMetrados ? 'bg-blue-50/50' : 'bg-white'} border-b border-slate-100 font-semibold group`}>
-            <td className="w-[60px] min-w-[60px] max-w-[60px] px-1 py-1 text-center overflow-hidden"></td>
-            <td className="w-[85px] min-w-[85px] px-1 py-1 text-center" style={{ paddingLeft: `${getIndentLevel(r.codigo) * 0.2 + 0.1}rem` }}>
+            <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1 text-center overflow-hidden"></td>
+            <td className="w-[105px] min-w-[105px] px-1 py-1 text-center" style={{ paddingLeft: `${getIndentLevel(r.codigo) * 0.2 + 0.1}rem` }}>
                 <span className="font-mono text-[10px] text-blue-500 bg-blue-50 px-1 py-0.5 rounded border border-blue-100">
                     {r.codigo}
                 </span>
@@ -131,12 +131,12 @@ const HeaderRow = React.memo(({ r, partidaTotals, showCostView, getIndentLevel, 
                     <td className="w-[80px] min-w-[80px] px-1 py-1 text-center text-[11px] border-l border-blue-100 bg-financial-progress font-mono text-slate-500/70">{formatNumber(presupuesto)}</td>
                     <td className={`w-[80px] min-w-[80px] px-1 py-1 text-center text-[11px] border-l border-amber-100 bg-financial-pending font-mono font-bold ${saldoFisico < 0 ? 'text-red-500' : 'text-amber-800'}`}>{formatNumber(saldoFisico)}</td>
                     <td className="w-[80px] min-w-[80px] px-1 py-1 text-center text-[11px] border-l border-amber-100 bg-financial-pending font-mono italic text-amber-700/80">S/ {formatNumber(saldoMonetario)}</td>
-                    <td className="w-[85px] min-w-[85px] px-1 py-1 text-center text-[11px] border-l border-emerald-200 bg-current-month font-mono font-black text-emerald-800 shadow-sm">S/ {formatNumber(totalPeriodo * precio)}</td>
-                    <td className="w-[85px] min-w-[85px] px-1 py-1 text-center text-[12px] border-l border-emerald-200 bg-financial-value font-mono font-black text-emerald-700">S/ {formatNumber(costoEjecutado)}</td>
+                    <td className="w-[105px] min-w-[105px] px-1 py-1 text-center text-[11px] border-l border-emerald-200 bg-current-month font-mono font-black text-emerald-800 shadow-sm">S/ {formatNumber(totalPeriodo * precio)}</td>
+                    <td className="w-[105px] min-w-[105px] px-1 py-1 text-center text-[12px] border-l border-emerald-200 bg-financial-value font-mono font-black text-emerald-700">S/ {formatNumber(costoEjecutado)}</td>
                     <td className="w-[70px] min-w-[70px] border-l border-slate-100/50"></td>
                 </>
             )}
-            <td className={`w-[85px] min-w-[85px] px-2 py-1 text-right font-black text-[12px] border-l border-slate-100/50 ${showCostView ? 'text-emerald-700 bg-emerald-50/50' : 'text-blue-600'}`}>
+            <td className={`w-[105px] min-w-[105px] px-2 py-1 text-right font-black text-[12px] border-l border-slate-100/50 ${showCostView ? 'text-emerald-700 bg-emerald-50/50' : 'text-blue-600'}`}>
                 {hasMetrados ? (showCostView ? `S/ ${formatNumber(totalPeriodo * precio)}` : formatNumber(totalPeriodo)) : '-'}
             </td>
         </tr>
@@ -179,19 +179,19 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
 
     return (
         <tr className="hover:bg-blue-50/20 border-b border-slate-100 group">
-            <td className="w-[60px] min-w-[60px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden">
+            <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden">
                 <input type="date" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-400 font-bold text-[9px] uppercase tracking-tighter ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                     value={r.fecha} onChange={(e) => onUpdate?.(r.id, 'fecha', e.target.value)}
                     onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
             </td>
-            <td className="w-[85px] min-w-[85px] px-0.5 py-1.5">
+            <td className="w-[105px] min-w-[105px] px-0.5 py-1.5">
                 <div className="flex items-center justify-center gap-0.5">
                     <div className="w-1 min-w-[4px] h-1 rounded-full bg-slate-300 shrink-0"></div>
-                    <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[18px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                    <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                         value={r.frente} onChange={(e) => onUpdate?.(r.id, 'frente', e.target.value)} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
-                    <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[18px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                    <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                         value={r.bloque} onChange={(e) => onUpdate?.(r.id, 'bloque', e.target.value)} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
-                    <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[18px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                    <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                         value={r.nivel} onChange={(e) => onUpdate?.(r.id, 'nivel', e.target.value)} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
                 </div>
             </td>
@@ -219,28 +219,28 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('cantidad', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                value={r.cantidad} onChange={(e) => onUpdate?.(r.id, 'cantidad', e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={r.cantidad?.toString()} value={r.cantidad} onChange={(e) => onUpdate?.(r.id, 'cantidad', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('longitud_area', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                value={r.longitud_area} onChange={(e) => onUpdate?.(r.id, 'longitud_area', e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={r.longitud_area?.toString()} value={r.longitud_area} onChange={(e) => onUpdate?.(r.id, 'longitud_area', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('ancho_empalme', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                value={r.ancho_empalme} onChange={(e) => onUpdate?.(r.id, 'ancho_empalme', e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={r.ancho_empalme?.toString()} value={r.ancho_empalme} onChange={(e) => onUpdate?.(r.id, 'ancho_empalme', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('altura_gancho', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                value={r.altura_gancho} onChange={(e) => onUpdate?.(r.id, 'altura_gancho', e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={r.altura_gancho?.toString()} value={r.altura_gancho} onChange={(e) => onUpdate?.(r.id, 'altura_gancho', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-2 py-1.5 text-center font-semibold text-slate-500 text-[11px] border-l border-slate-200/60">{formatNumber(r.parcial)}</td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('nro_veces', meta) ? <span className="text-[9px] font-bold text-slate-300">1</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-500 font-bold text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                value={r.nro_veces} onChange={(e) => onUpdate?.(r.id, 'nro_veces', e.target.value)} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={r.nro_veces?.toString()} value={r.nro_veces} onChange={(e) => onUpdate?.(r.id, 'nro_veces', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                 </>
             ) : (
@@ -248,7 +248,7 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                     Modo valorización activado
                 </td>
             )}
-            <td className="w-[60px] min-w-[60px] px-1 py-1 text-center border-l border-slate-100/50">
+            <td className="w-[65px] min-w-[65px] px-1 py-1 text-center border-l border-slate-100/50">
                 <span className="text-[9px] font-black text-slate-800 uppercase truncate w-full">{(r.autor_usuario || 'User').split(' ')[0]}</span>
             </td>
             <td className="w-[75px] min-w-[75px] px-1.5 py-1.5 text-right font-bold text-slate-800 relative text-[11px] border-l border-slate-200/60">
@@ -953,17 +953,17 @@ export const MetradosTable = React.memo(({
                 <table className="w-full text-[11px] text-left align-middle border-collapse table-auto">
                     <thead className="text-[11px] text-slate-400 bg-white uppercase whitespace-nowrap sticky top-0 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] z-10 font-bold">
                         <tr className="border-b border-slate-100">
-                            <th className="w-[60px] min-w-[60px] px-1 py-3 text-center overflow-hidden">Fecha</th>
-                            <th className="w-[85px] min-w-[85px] px-1 py-3 text-center">Item</th>
+                            <th className="w-[65px] min-w-[65px] px-1 py-3 text-center overflow-hidden">Fecha</th>
+                            <th className="w-[105px] min-w-[105px] px-1 py-3 text-center">Item</th>
                             <th className="px-1 py-3 min-w-[200px] text-left">Descripción</th>
                             <th className="w-[30px] min-w-[30px] px-0.5 py-3 text-center">Und</th>
 
                             {!showCostView ? (
                                 <>
-                                    <th className="w-[50px] min-w-[50px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">CANT.</th>
+                                    <th className="w-[65px] min-w-[65px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">CANT.</th>
                                     <th className="w-[70px] min-w-[70px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">LONG./AREA</th>
-                                    <th className="w-[60px] min-w-[60px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">ANCHO</th>
-                                    <th className="w-[60px] min-w-[60px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">ALT./GAN.</th>
+                                    <th className="w-[65px] min-w-[65px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">ANCHO</th>
+                                    <th className="w-[65px] min-w-[65px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">ALT./GAN.</th>
                                     <th className="w-[75px] min-w-[75px] px-1 py-3 text-center text-[10px] border-l border-slate-200">Parcial</th>
                                     <th className="w-[45px] min-w-[45px] px-0.5 py-3 text-center text-[10px] border-l border-slate-200">Veces</th>
                                 </>
@@ -974,13 +974,13 @@ export const MetradosTable = React.memo(({
                                     <th className="w-[80px] min-w-[80px] px-1 py-3 text-center text-[10px] border-l bg-blue-100 bg-financial-progress">Presupuesto</th>
                                     <th className="w-[80px] min-w-[80px] px-1 py-3 text-center text-[10px] border-l bg-amber-100 bg-financial-pending font-black">Saldo Fis.</th>
                                     <th className="w-[80px] min-w-[80px] px-1 py-3 text-center text-[10px] border-l bg-amber-100 bg-financial-pending">Sald. Mon S/</th>
-                                    <th className="w-[85px] min-w-[85px] px-1 py-3 text-center text-[10px] border-l bg-emerald-200 bg-current-month font-black shadow-inner">Val. Mes S/</th>
-                                    <th className="w-[85px] min-w-[85px] px-1 py-3 text-center text-[10px] border-l bg-emerald-200 bg-financial-value font-black text-emerald-800">Costo Ejec.</th>
+                                    <th className="w-[105px] min-w-[105px] px-1 py-3 text-center text-[10px] border-l bg-emerald-200 bg-current-month font-black shadow-inner">Val. Mes S/</th>
+                                    <th className="w-[105px] min-w-[105px] px-1 py-3 text-center text-[10px] border-l bg-emerald-200 bg-financial-value font-black text-emerald-800">Costo Ejec.</th>
                                 </>
                             )}
 
                             <th className="w-[70px] min-w-[70px] px-1 py-3 text-center text-[10px] border-l border-slate-200">AUTOR</th>
-                            <th className="w-[85px] min-w-[85px] px-2 py-3 text-right text-[10px] border-l border-slate-200">Total</th>
+                            <th className="w-[105px] min-w-[105px] px-2 py-3 text-right text-[10px] border-l border-slate-200">Total</th>
                         </tr>
                     </thead>
                     <tbody key={`grid-body-${showCostView}-${viewMode}`} className="bg-white">
