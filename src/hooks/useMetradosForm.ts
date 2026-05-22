@@ -47,11 +47,11 @@ export const useMetradosForm = () => {
     const [hvacItemType, setHvacItemType] = useState<string | null>(null); // 'TEE', 'REDUCCION', 'CODO', 'DUCTO'
     const [diametro, setDiametro] = useState<string>('5/8"');
 
-    const [cantidad, setCantidad] = useState<number | "">("");
-    const [longitud, setLongitud] = useState<number | "">("");
-    const [ancho, setAncho] = useState<number | "">("");
-    const [altura, setAltura] = useState<number | "">("");
-    const [nroVeces, setNroVeces] = useState<number | "">("");
+    const [cantidad, setCantidad] = useState<string | number>("");
+    const [longitud, setLongitud] = useState<string | number>("");
+    const [ancho, setAncho] = useState<string | number>("");
+    const [altura, setAltura] = useState<string | number>("");
+    const [nroVeces, setNroVeces] = useState<string | number>("");
 
     const isReadOnly = isReadOnlyMetrados();
 

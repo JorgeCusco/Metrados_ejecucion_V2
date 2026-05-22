@@ -672,7 +672,7 @@ export const MetradosForm: React.FC<MetradosFormProps> = ({ state, actions, onGu
                                         inputMode="decimal"
                                         value={state[key]}
                                         disabled={isLocked}
-                                        onChange={e => actions[`set${key.charAt(0).toUpperCase() + key.slice(1)}`](e.target.value === "" ? "" : Number(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, '')))}
+                                        onChange={e => actions[`set${key.charAt(0).toUpperCase() + key.slice(1)}`](e.target.value === "" ? "" : e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
                                         onKeyDown={e => handleKeyDown(e, nextIds[key])}
                                         onFocus={e => e.target.select()}
                                         className={`w-full px-1 py-1 border rounded text-[11px] text-right font-mono font-bold outline-none transition-colors ${
@@ -729,7 +729,7 @@ export const MetradosForm: React.FC<MetradosFormProps> = ({ state, actions, onGu
                                     inputMode="decimal"
                                     value={state.nroVeces}
                                     disabled={isVecesLocked}
-                                    onChange={e => actions.setNroVeces(e.target.value === "" ? "" : Number(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, '')))}
+                                    onChange={e => actions.setNroVeces(e.target.value === "" ? "" : e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
                                     onKeyDown={e => handleKeyDown(e, 'submit')}
                                     onFocus={e => e.target.select()}
                                     className={`w-full px-1 py-1 border rounded text-[11px] text-right font-mono font-bold outline-none transition-colors ${
