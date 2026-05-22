@@ -16,9 +16,6 @@ erDiagram
     HVAC_CATALOGO_ACCESORIOS ||--o{ METRADOS : "aplica factor a"
     CATALOGO_PARTIDAS ||--o{ METRADOS_LIQUIDACIONES : "es referenciado por"
     PARTIDAS_PERSONALIZADAS ||--o{ METRADOS_LIQUIDACIONES : "es referenciado por"
-    
-    INSUMOS_MASTER ||--o{ INSUMO_MAPPING : "mapeado a"
-    INSUMOS_COMPRADO ||--o{ INSUMO_MAPPING : "mapeado con"
     TIPOS_MOVIMIENTO ||--o{ INSUMOS_COMPRADO : "clasifica"
 
     HVAC_CATALOGO_ACCESORIOS {
@@ -150,13 +147,6 @@ erDiagram
         numeric cantidad
         numeric total
         bigint tipo_id FK
-    }
-
-    INSUMO_MAPPING {
-        bigint id PK
-        bigint master_id FK
-        bigint comprado_id FK
-        text usuario
     }
 
     TIPOS_MOVIMIENTO {
