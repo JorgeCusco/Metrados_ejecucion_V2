@@ -53,7 +53,7 @@ interface MetradosState {
 
 export const useMetradosStore = create<MetradosState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             context: {
                 frente: '',
                 bloque: '',
@@ -149,8 +149,7 @@ export const useMetradosStore = create<MetradosState>()(
                     };
 
                     // 1. Insertamos el Metrado (V8.1.3: Nombres únicos para evitar redéclarations)
-                    const isLiq = useAuthStore.getState().isLiquidaciones();
-                    const tableName = isLiq ? 'metrados_liquidaciones' : 'metrados';
+                    const tableName = 'metrados';
                     
                     const { data: insertData, error: insertError } = await (supabase.from(tableName) as any).insert([payloadToInsert]).select().single();
 
@@ -183,19 +182,16 @@ export const useMetradosStore = create<MetradosState>()(
 
                     // 2. Vinculación Many-to-Many de Cuadrilla (Personal)
                     // V7.2.3: Filtrar solo IDs que sean UUIDs válidos para evitar errores de integridad con personal local (mock)
-                    // (Solo aplica para metrados normales y personalizados, liquidaciones no usa vinculación de personal)
-                    if (!isLiq) {
-                        const validObrerosIds = (metrado.obreros_ids || []).filter(id => isUUID(id));
+                    const validObrerosIds = (metrado.obreros_ids || []).filter(id => isUUID(id));
 
-                        if (validObrerosIds.length > 0) {
-                            const personalLinks = validObrerosIds.map((id: string) => ({
-                                metrado_id: (insertData as any).id,
-                                personal_id: id
-                            }));
-                            
-                            const { error: errorLinks } = await (supabase.from('metrados_personal') as any).insert(personalLinks as any);
-                            if (errorLinks) console.error('Error bindeando personal a metrado (FK Error):', errorLinks);
-                        }
+                    if (validObrerosIds.length > 0) {
+                        const personalLinks = validObrerosIds.map((id: string) => ({
+                            metrado_id: (insertData as any).id,
+                            personal_id: id
+                        }));
+                        
+                        const { error: errorLinks } = await (supabase.from('metrados_personal') as any).insert(personalLinks as any);
+                        if (errorLinks) console.error('Error bindeando personal a metrado (FK Error):', errorLinks);
                     }
 
                     const dbMetrado: Metrado = { 
@@ -214,8 +210,7 @@ export const useMetradosStore = create<MetradosState>()(
 
             fetchMetrados: async () => {
                 try {
-                    const isLiq = useAuthStore.getState().isLiquidaciones();
-                    const tableName = isLiq ? 'metrados_liquidaciones' : 'metrados';
+                    const tableName = 'metrados';
 
                     // 1. Obtener conteo total en una consulta ultraligera
                     const { count, error: countError } = await supabase
@@ -233,7 +228,7 @@ export const useMetradosStore = create<MetradosState>()(
                     const promises = [];
                     
                     // V18 Optimization: Join ligero recuperando sólo personal_id (reducción payload ~80%)
-                    const selectQuery = isLiq ? '*' : '*, metrados_personal(personal_id), catalogo_partidas(modificacion)';
+                    const selectQuery = '*, metrados_personal(personal_id), catalogo_partidas(modificacion)';
 
                     for (let i = 0; i < pages; i++) {
                         const fromRange = i * step;
@@ -264,30 +259,28 @@ export const useMetradosStore = create<MetradosState>()(
                         let formattedCuadrilla = undefined;
                         let obrerosIds: string[] = [];
 
-                        if (!isLiq) {
-                            const allPersonal = usePersonalStore.getState().personal;
-                            
-                            // Extraer IDs bindeados en metrados_personal
-                            let personalIds = (dbRow.metrados_personal || [])
-                                .map((rel: any) => rel.personal_id)
+                        const allPersonal = usePersonalStore.getState().personal;
+                        
+                        // Extraer IDs bindeados en metrados_personal
+                        let personalIds = (dbRow.metrados_personal || [])
+                            .map((rel: any) => rel.personal_id)
+                            .filter(Boolean);
+                        
+                        let personalList = [];
+                        if (personalIds.length === 0 && dbRow.cuadrilla) {
+                            // Fallback legacy para registros antiguos sin bindeo de ID pero con cuadrilla textual
+                            personalList = allPersonal.filter((p: any) => p.cuadrilla?.toUpperCase() === dbRow.cuadrilla.toUpperCase());
+                            obrerosIds = personalList.map((p: any) => p.id);
+                        } else {
+                            obrerosIds = personalIds;
+                            personalList = personalIds
+                                .map((id: string) => allPersonal.find((p: any) => p.id === id))
                                 .filter(Boolean);
-                            
-                            let personalList = [];
-                            if (personalIds.length === 0 && dbRow.cuadrilla) {
-                                // Fallback legacy para registros antiguos sin bindeo de ID pero con cuadrilla textual
-                                personalList = allPersonal.filter((p: any) => p.cuadrilla?.toUpperCase() === dbRow.cuadrilla.toUpperCase());
-                                obrerosIds = personalList.map((p: any) => p.id);
-                            } else {
-                                obrerosIds = personalIds;
-                                personalList = personalIds
-                                    .map((id: string) => allPersonal.find((p: any) => p.id === id))
-                                    .filter(Boolean);
-                            }
-
-                            formattedCuadrilla = personalList
-                                .map((p: any) => p.categoria ? `${p.nombre_formateado} (${p.categoria})` : p.nombre_formateado)
-                                .join(' / ');
                         }
+
+                        formattedCuadrilla = personalList
+                            .map((p: any) => p.categoria ? `${p.nombre_formateado} (${p.categoria})` : p.nombre_formateado)
+                            .join(' / ');
 
                         return {
                             modificacion: dbRow.catalogo_partidas?.modificacion || undefined,
@@ -347,7 +340,7 @@ export const useMetradosStore = create<MetradosState>()(
                 if ((dbPayload as any).partida_id && !isUUID((dbPayload as any).partida_id)) delete (dbPayload as any).partida_id;
                 if ((dbPayload as any).custom_partida_id && !isUUID((dbPayload as any).custom_partida_id)) delete (dbPayload as any).custom_partida_id;
 
-                const tableName = useAuthStore.getState().isLiquidaciones() ? 'metrados_liquidaciones' : 'metrados';
+                const tableName = 'metrados';
                 const { error } = await (supabase.from(tableName) as any).update(dbPayload as any).eq('id', id);
                 if (error) console.error('Error Supabase Update Metrado:', error);
             },
@@ -356,7 +349,7 @@ export const useMetradosStore = create<MetradosState>()(
                 set((state) => ({
                     metrados: state.metrados.filter((m) => m.id !== id),
                 }));
-                const tableName = useAuthStore.getState().isLiquidaciones() ? 'metrados_liquidaciones' : 'metrados';
+                const tableName = 'metrados';
                 const { error } = await (supabase.from(tableName) as any).delete().eq('id', id);
                 if (error) console.error('Error Supabase Delete Metrado:', error);
             },
@@ -369,7 +362,7 @@ export const useMetradosStore = create<MetradosState>()(
                             : m
                     ),
                 }));
-                const tableName = useAuthStore.getState().isLiquidaciones() ? 'metrados_liquidaciones' : 'metrados';
+                const tableName = 'metrados';
                 const { error } = await (supabase.from(tableName) as any)
                     .update({ elemento: new_elemento } as any)
                     .eq('codigo_partida', codigo_partida)
@@ -571,9 +564,7 @@ export const useMetradosStore = create<MetradosState>()(
                 if (!user) return false;
 
                 try {
-                    // 1. Obtener valor anterior para el log
                     const catalogKey = proyecto === 'hospital' ? 'catalogoHospital' : 'catalogoContingencia';
-                    const oldPartida = (get() as any)[catalogKey].find((p: any) => p.id === id);
 
                     // 2. Update en Supabase
                     const { error } = await (supabase
@@ -583,15 +574,7 @@ export const useMetradosStore = create<MetradosState>()(
 
                     if (error) throw error;
 
-                    // 3. Registrar Log de Auditoría
-                    await (supabase.from('logs_maestro_presupuesto') as any).insert([{
-                        usuario_nombre: user.nombre_completo,
-                        accion: 'EDIT',
-                        codigo_partida: oldPartida?.codigo || 'N/A',
-                        detalle: `Editó partida ${oldPartida?.codigo}. Campos: ${Object.keys(payload).join(', ')}`,
-                        valor_anterior: oldPartida,
-                        valor_nuevo: { ...oldPartida, ...payload }
-                    }]);
+
 
                     // 4. Update local
                     set((state: any) => ({
@@ -629,14 +612,7 @@ export const useMetradosStore = create<MetradosState>()(
 
                     if (error) throw error;
 
-                    // Log
-                    await (supabase.from('logs_maestro_presupuesto') as any).insert([{
-                        usuario_nombre: user.nombre_completo,
-                        accion: 'ADD',
-                        codigo_partida: partida.codigo,
-                        detalle: `Añadió nueva partida: ${partida.codigo} - ${partida.descripcion}`,
-                        valor_nuevo: data
-                    }]);
+
 
                     // Update local
                     set((state: any) => ({

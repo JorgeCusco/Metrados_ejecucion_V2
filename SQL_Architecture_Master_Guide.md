@@ -13,9 +13,6 @@ erDiagram
     CATALOGO_PARTIDAS ||--o{ METRADOS : "es referenciado por"
     PARTIDAS_PERSONALIZADAS ||--o{ METRADOS : "es referenciado por (nodos custom)"
     PERSONAL ||--o{ METRADOS_PERSONAL : "participa en"
-    HVAC_CATALOGO_ACCESORIOS ||--o{ METRADOS : "aplica factor a"
-    CATALOGO_PARTIDAS ||--o{ METRADOS_LIQUIDACIONES : "es referenciado por"
-    PARTIDAS_PERSONALIZADAS ||--o{ METRADOS_LIQUIDACIONES : "es referenciado por"
     TIPOS_MOVIMIENTO ||--o{ INSUMOS_COMPRADO : "clasifica"
 
     HVAC_CATALOGO_ACCESORIOS {
@@ -46,17 +43,6 @@ erDiagram
         text especialidad
         jsonb roles_apps
         boolean es_administrador_presupuesto "V26"
-    }
-
-    LOGS_MAESTRO_PRESUPUESTO {
-        uuid id PK
-        timestamp fecha
-        text usuario_nombre
-        text accion "ADD | EDIT | DELETE | MOVE"
-        text codigo_partida
-        text detalle
-        jsonb valor_anterior
-        jsonb valor_nuevo
     }
 
     PROYECTO {
@@ -106,20 +92,6 @@ erDiagram
         numeric total
         numeric hvac_factor
         text hvac_item_type
-        text autor_usuario
-        timestamp created_at
-    }
-
-    METRADOS_LIQUIDACIONES {
-        uuid id PK
-        date fecha
-        uuid partida_id FK
-        uuid custom_partida_id FK
-        text codigo_partida
-        text descripcion_partida
-        text unidad
-        text proyecto
-        numeric total
         text autor_usuario
         timestamp created_at
     }
@@ -363,28 +335,6 @@ Se ha desarrollado el script `tools/migracion/budget_migrator.py` que permite in
 
 ---
 
-## Parte 12: Arquitectura Unificada (Metrados Normales vs Liquidaciones)
-
-### 12.1 Separación Lógica de Datos en Tablas Físicas Separadas
-
-Para evitar la duplicación de código en el Frontend y mantener los metrados completamente aislados por departamento, la aplicación utiliza una arquitectura de **Tabla Dinámica en Tiempo de Ejecución**:
-
-- **`metrados`**: Tabla estándar para el control diario de avance de obra.
-- **`metrados_liquidaciones`**: Tabla con la misma estructura (sin la vinculación `metrados_personal`), pero aislada para uso exclusivo del departamento de Liquidaciones.
-
-### 12.2 Multiplexación Dinámica (Frontend / Zustand)
-
-El store principal (`useMetradosStore`) determina de forma transparente hacia qué tabla dirigir todos los comandos CRUD (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) basándose en el perfil de usuario validado por `useAuthStore.isLiquidaciones()`.
-
-- Si el usuario tiene `"LIQUIDACIONES"` en su `area` de `ecosistema_usuarios`: El store redirige automáticamente todas las peticiones a `metrados_liquidaciones`.
-- Si es un usuario regular: Sus acciones se dirigen a `metrados`.
-- **Beneficio**: Las mejoras al componente visual (`PlanillaMetrados`, `MetradosTable`, filtros) se programan una sola vez y aplican a ambos grupos de trabajo, ahorrando el 50% del esfuerzo de mantenimiento de código.
-
-### 12.3 Row-Level Security (RLS) en Liquidaciones
-
-Al igual que en la tabla `metrados`, la seguridad se gestiona primariamente desde la capa de la aplicación (UI) a través del archivo `useAuthStore.ts` de forma que los usuarios con permisos de edición de Liquidación puedan realizar un CRUD completo sobre la tabla `metrados_liquidaciones` usando los clientes de tipo *anon* en el Frontend. 
-- Para evitar que supabase bloquee las inserciones a causa de activaciones RLS por defecto, se define el estado de `metrados_liquidaciones` con `ALTER TABLE ... DISABLE ROW LEVEL SECURITY` u otorgando accesos explícitos GRANT a roles como public/anon. 
-
 ---
 
 ## Parte 13: Ecosistema de Aislamiento Lógico (Partidas Creadas PC)
@@ -412,12 +362,6 @@ En lugar de depender de registros desordenados tipo "OE.9.9.9", el modal genera 
 Se ha introducido un campo booleano directo en `ecosistema_usuarios`:
 - **`es_administrador_presupuesto`**: Flag que otorga acceso a las herramientas de edición masiva, recalculación y auditoría dentro del panel `/admin/presupuesto`.
 
-### 13.2 Auditoría de Cambios (`logs_maestro_presupuesto`)
-
-Cada cambio estructural en el catálogo maestro es registrado para garantizar la trazabilidad:
-- Almacena el estado previo y posterior en `jsonb`.
-- Registra la acción (ADD, EDIT, DELETE, MOVE) y el usuario responsable.
-
 ### 13.3 Valorización Selectiva (`se_valoriza`)
 
 Se ha añadido soporte para diferenciar actividades operativas de financieras:
@@ -442,8 +386,6 @@ A fecha de mayo de 2026, el ecosistema presenta los siguientes volúmenes de dat
 Se han identificado componentes con baja o nula actividad que podrían ser optimizados en futuras versiones:
 
 1. **`proyecto`**: Actualmente con 0 registros. Se recomienda su uso solo si se planea multi-frente multi-base de datos.
-2. **`logs_maestro_presupuesto`**: Capacidad instalada (V26) pero sin registros actuales. Listo para activar auditoría.
-3. **`metrados_liquidaciones`**: Baja densidad (7 registros). Funciona como sandbox de aislamiento pero podría consolidarse en la tabla principal bajo un flag de estado.
 
 ---
 *Última Actualización: V27 - 15 de Mayo 2026 (Auditoría de Estructura y Volumetría)*
