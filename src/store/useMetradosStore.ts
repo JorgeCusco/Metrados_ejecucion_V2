@@ -214,52 +214,76 @@ export const useMetradosStore = create<MetradosState>()(
 
             fetchMetrados: async () => {
                 try {
-                    // Motor de Carga Masiva V16: Bypass de límite de 1000 registros (Paginación Automática)
-                    let allMetrados: any[] = [];
-                    let from = 0;
+                    const isLiq = useAuthStore.getState().isLiquidaciones();
+                    const tableName = isLiq ? 'metrados_liquidaciones' : 'metrados';
+
+                    // 1. Obtener conteo total en una consulta ultraligera
+                    const { count, error: countError } = await supabase
+                        .from(tableName)
+                        .select('*', { count: 'exact', head: true });
+
+                    if (countError) throw countError;
+                    
+                    const totalRows = count || 0;
+                    console.log(`[V18 Parallel] Metrados totales en ${tableName}: ${totalRows}`);
+
+                    // 2. Crear promesas para cada página de forma concurrente
                     const step = 1000;
-                    let hasMore = true;
+                    const pages = Math.ceil(totalRows / step);
+                    const promises = [];
+                    
+                    // V18 Optimization: Join ligero recuperando sólo personal_id (reducción payload ~80%)
+                    const selectQuery = isLiq ? '*' : '*, metrados_personal(personal_id), catalogo_partidas(modificacion)';
 
-                    while (hasMore) {
-                        const isLiq = useAuthStore.getState().isLiquidaciones();
-                        const tableName = isLiq ? 'metrados_liquidaciones' : 'metrados';
-                        // Hacemos JOIN con catalogo_partidas para rescatar la 'modificacion' de los Legacy PC
-                        const selectQuery = isLiq ? '*' : '*, metrados_personal(personal(*)), catalogo_partidas(modificacion)';
+                    for (let i = 0; i < pages; i++) {
+                        const fromRange = i * step;
+                        const toRange = fromRange + step - 1;
+                        promises.push(
+                            supabase
+                                .from(tableName)
+                                .select(selectQuery)
+                                .order('fecha', { ascending: false })
+                                .range(fromRange, toRange)
+                        );
+                    }
 
-                        const { data, error } = await supabase
-                            .from(tableName)
-                            .select(selectQuery)
-                            .order('fecha', { ascending: false })
-                            .range(from, from + step - 1) as any;
-                        
-                        if (error) throw error;
-                        if (!data || data.length === 0) {
-                            hasMore = false;
-                        } else {
-                            allMetrados = [...allMetrados, ...data];
-                            from += step;
-                            if (data.length < step) hasMore = false; // Última página
+                    // 3. Ejecutar todas en paralelo
+                    const results = await Promise.all(promises);
+                    
+                    // 4. Concatenar resultados
+                    let allMetrados: any[] = [];
+                    for (const res of results) {
+                        if (res.error) throw res.error;
+                        if (res.data) {
+                            allMetrados = allMetrados.concat(res.data);
                         }
                     }
-                    console.log(`[V17] Metrados TOTAL cargados de Supabase: ${allMetrados.length} registros.`);
-
-                    const isLiq = useAuthStore.getState().isLiquidaciones();
+                    console.log(`[V18 Parallel] Metrados TOTAL cargados de Supabase: ${allMetrados.length} registros.`);
 
                     const fetchedMetrados: Metrado[] = allMetrados.map((dbRow: any) => {
                         let formattedCuadrilla = undefined;
                         let obrerosIds: string[] = [];
 
                         if (!isLiq) {
-                            let personalList = (dbRow.metrados_personal || [])
-                                .map((rel: any) => rel.personal)
+                            const allPersonal = usePersonalStore.getState().personal;
+                            
+                            // Extraer IDs bindeados en metrados_personal
+                            let personalIds = (dbRow.metrados_personal || [])
+                                .map((rel: any) => rel.personal_id)
                                 .filter(Boolean);
                             
-                            if (personalList.length === 0 && dbRow.cuadrilla) {
-                                const allPersonal = usePersonalStore.getState().personal;
+                            let personalList = [];
+                            if (personalIds.length === 0 && dbRow.cuadrilla) {
+                                // Fallback legacy para registros antiguos sin bindeo de ID pero con cuadrilla textual
                                 personalList = allPersonal.filter((p: any) => p.cuadrilla?.toUpperCase() === dbRow.cuadrilla.toUpperCase());
+                                obrerosIds = personalList.map((p: any) => p.id);
+                            } else {
+                                obrerosIds = personalIds;
+                                personalList = personalIds
+                                    .map((id: string) => allPersonal.find((p: any) => p.id === id))
+                                    .filter(Boolean);
                             }
 
-                            obrerosIds = personalList.map((p: any) => p.id);
                             formattedCuadrilla = personalList
                                 .map((p: any) => p.categoria ? `${p.nombre_formateado} (${p.categoria})` : p.nombre_formateado)
                                 .join(' / ');
@@ -465,28 +489,35 @@ export const useMetradosStore = create<MetradosState>()(
                     const hospId = proyectos.find((p: any) => p.codigo === 'HOSP')?.id;
                     const contId = proyectos.find((p: any) => p.codigo === 'CONT')?.id;
 
-                    // MOTOR DE CARGA MASIVA V16: Recursividad para Catálogo (Bypass límite 1000)
-                    let allCatalogo: any[] = [];
-                    let from = 0;
+                    // MOTOR DE CARGA MASIVA V18: Paralelismo para Catálogo (Bypass límite 1000)
+                    const { count, error: countError } = await supabase
+                        .from('catalogo_partidas')
+                        .select('*', { count: 'exact', head: true });
+
+                    if (countError) throw countError;
+                    
+                    const totalRows = count || 0;
                     const step = 1000;
-                    let hasMore = true;
+                    const pages = Math.ceil(totalRows / step);
+                    const promises = [];
 
-                    while (hasMore) {
-                        const { data, error } = await supabase
-                            .from('catalogo_partidas')
-                            .select('*')
-                            .order('codigo', { ascending: true })
-                            .range(from, from + step - 1) as any;
+                    for (let i = 0; i < pages; i++) {
+                        const fromRange = i * step;
+                        const toRange = fromRange + step - 1;
+                        promises.push(
+                            supabase
+                                .from('catalogo_partidas')
+                                .select('*')
+                                .order('codigo', { ascending: true })
+                                .range(fromRange, toRange)
+                        );
+                    }
 
-                        if (error) throw error;
-                        if (!data || data.length === 0) {
-                            hasMore = false;
-                        } else {
-                            allCatalogo = [...allCatalogo, ...data];
-                            from += step;
-                            if (data.length < step) hasMore = false;
-                            if (allCatalogo.length > 50000) hasMore = false;
-                        }
+                    const results = await Promise.all(promises);
+                    let allCatalogo: any[] = [];
+                    for (const res of results) {
+                        if (res.error) throw res.error;
+                        if (res.data) allCatalogo = allCatalogo.concat(res.data);
                     }
 
                     console.log(`[V16] Catálogo TOTAL cargado: ${allCatalogo.length} registros.`);

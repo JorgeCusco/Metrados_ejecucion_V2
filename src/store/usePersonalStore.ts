@@ -41,7 +41,39 @@ export const usePersonalStore = create<PersonalState>()((set) => ({
     fetchPersonal: async () => {
         const { data, error } = await supabase.from('personal').select('*').order('nombre_formateado');
         if (!error && (data as any)) {
-            set({ personal: data as any[] });
+            const personal = data as any[];
+            set({ personal });
+
+            // Sync formatted names in metrados if already loaded
+            try {
+                const { useMetradosStore } = await import('./useMetradosStore');
+                const metradosStore = useMetradosStore.getState();
+                if (metradosStore.metrados.length > 0) {
+                    let updated = false;
+                    const newMetrados = metradosStore.metrados.map(m => {
+                        if (m.obreros_ids && m.obreros_ids.length > 0 && !m.obrero_nombre) {
+                            const workers = m.obreros_ids
+                                .map(id => personal.find(p => p.id === id))
+                                .filter(Boolean);
+                            if (workers.length > 0) {
+                                updated = true;
+                                return {
+                                    ...m,
+                                    obrero_nombre: workers
+                                        .map(p => p.categoria ? `${p.nombre_formateado} (${p.categoria})` : p.nombre_formateado)
+                                        .join(' / ')
+                                };
+                            }
+                        }
+                        return m;
+                    });
+                    if (updated) {
+                        useMetradosStore.setState({ metrados: newMetrados });
+                    }
+                }
+            } catch (err) {
+                console.error('Error in lazy sync in fetchPersonal:', err);
+            }
         }
     },
 

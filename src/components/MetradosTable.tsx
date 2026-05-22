@@ -143,9 +143,9 @@ const HeaderRow = React.memo(({ r, partidaTotals, showCostView, getIndentLevel, 
     );
 });
 
-const getCuadrillaLabel = (ids?: string[]) => {
+const getCuadrillaLabel = (ids?: string[], personalList?: any[]) => {
     if (!ids || ids.length === 0) return null;
-    const personal = usePersonalStore.getState().personal;
+    const personal = personalList || usePersonalStore.getState().personal;
     
     let opCounter = 0;
     let ofCounter = 0;
@@ -172,10 +172,10 @@ const getCuadrillaLabel = (ids?: string[]) => {
     return parts.join('+');
 };
 
-const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumber, handleKeyDown, isReadOnly }: any) => {
+const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumber, handleKeyDown, isReadOnly, personal }: any) => {
     const strategy = formulaRegistry.get(r.tipo_metrado);
     const meta = { hvacItemType: r.hvac_item_type };
-    const cuadrillaResumen = getCuadrillaLabel(r.obreros_ids);
+    const cuadrillaResumen = getCuadrillaLabel(r.obreros_ids, personal);
 
     return (
         <tr className="hover:bg-blue-50/20 border-b border-slate-100 group">
@@ -457,6 +457,7 @@ export const MetradosTable = React.memo(({
     isReadOnly = false
 }: MetradosTableProps) => {
     const { customPartidas, catalogoHospital, catalogoContingencia } = useMetradosStore();
+    const { personal } = usePersonalStore();
 
     // Seleccionar el catálogo de partidas correcto según el proyecto y sumarle las personalizadas
     const catalogoActivo = useMemo(() => {
@@ -1038,6 +1039,7 @@ export const MetradosTable = React.memo(({
                                     formatNumber={formatNumber}
                                     handleKeyDown={memoizedKeyDown}
                                     isReadOnly={isRowReadOnly}
+                                    personal={personal}
                                 />
                             );
                         })}
