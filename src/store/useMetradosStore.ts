@@ -235,7 +235,6 @@ export const useMetradosStore = create<MetradosState>()(
                     // 2. Crear promesas para cada página de forma concurrente
                     const step = 1000;
                     const pages = Math.ceil(totalRows / step);
-                    const promises = [];
                     
                     // V18 Optimization: Join ligero recuperando sólo personal_id (reducción payload ~80%)
                     const selectQuery = '*, metrado_trabajador(trabajador_id), partidas(modificacion)';
@@ -506,7 +505,6 @@ export const useMetradosStore = create<MetradosState>()(
                     const totalRows = count || 0;
                     const step = 1000;
                     const pages = Math.ceil(totalRows / step);
-                    const promises = [];
 
                     // MOTOR DE CARGA MASIVA V18.1: Loteador Concurrente
                     const batchSize = 5;
