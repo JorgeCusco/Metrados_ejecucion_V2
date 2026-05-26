@@ -40,6 +40,14 @@ function esPartidaAcero(m: any): boolean {
                .normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('acero'));
 }
 
+function cleanTextForExcel(text: string): string {
+    if (!text) return "";
+    return text.trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
 export const clientSideExport = async (
     metrados: any[], 
     proyecto: string, 
@@ -101,10 +109,10 @@ export const clientSideExport = async (
 
         const isSumatoria = m.is_template && !m.es_titulo;
         const codigoActual = isSumatoria ? m.codigo : m.codigo_partida;
-        const descActual = isSumatoria ? m.descripcion : (m.descripcion_partida || m.codigo_partida || "");
+        const descActual = isSumatoria ? cleanTextForExcel(m.descripcion) : cleanTextForExcel(m.descripcion_partida || m.codigo_partida || "");
 
         const infoPartida = codigosMap.get(codigoActual) || {};
-        const unidadActual = m.unidad || infoPartida.unidad || "";
+        const unidadActual = cleanTextForExcel(m.unidad || infoPartida.unidad || "");
 
         rowData = new Array(isMaster ? 42 : 27).fill("");
 
@@ -118,7 +126,7 @@ export const clientSideExport = async (
         }
         ancestors.sort((a, b) => a.codigo.length - b.codigo.length);
         for (let i = 0; i < ancestors.length && i < 4; i++) {
-            grados[i] = `${ancestors[i].codigo}-${ancestors[i].descripcion}`;
+            grados[i] = `${ancestors[i].codigo}-${cleanTextForExcel(ancestors[i].descripcion)}`;
         }
 
         if (isSumatoria) {
@@ -139,7 +147,7 @@ export const clientSideExport = async (
             const flagAcero = esPartidaAcero(m);
             const elemTrim = (m.elemento || '').trim();
             const detalleTrim = (m.detalle || '').trim();
-            const concatDesc = elemTrim && detalleTrim ? `${elemTrim} / ${detalleTrim}` : elemTrim || detalleTrim;
+            const concatDesc = cleanTextForExcel(elemTrim && detalleTrim ? `${elemTrim} / ${detalleTrim}` : elemTrim || detalleTrim);
 
             let parcial = m.parcial;
             if (flagAcero) {
@@ -163,11 +171,11 @@ export const clientSideExport = async (
 
             rowData[1] = m.nivelJerarquia != null ? String(m.nivelJerarquia) : ""; // B
             rowData[2] = m.fecha || ""; // C
-            rowData[3] = obtenerEspecialidad(codigoActual) || m.especialidad || ""; // D
-            rowData[4] = m.frente || ""; // E
-            rowData[5] = m.bloque || ""; // F
-            rowData[6] = m.nivel || ""; // G
-            rowData[7] = m.cuadrilla || ""; // H
+            rowData[3] = cleanTextForExcel(obtenerEspecialidad(codigoActual) || m.especialidad || ""); // D
+            rowData[4] = cleanTextForExcel(m.frente || ""); // E
+            rowData[5] = cleanTextForExcel(m.bloque || ""); // F
+            rowData[6] = cleanTextForExcel(m.nivel || ""); // G
+            rowData[7] = cleanTextForExcel(m.cuadrilla || ""); // H
 
             rowData[8] = grados[0]; // I
             rowData[9] = grados[1]; // J
@@ -189,8 +197,8 @@ export const clientSideExport = async (
             rowData[23] = unidadActual; // X
             rowData[24] = m.modificacion || "SM"; // Y
             
-            rowData[25] = m.obrero_nombre || ""; // Z
-            rowData[26] = m.autor_usuario || ""; // AA
+            rowData[25] = cleanTextForExcel(m.obrero_nombre || ""); // Z
+            rowData[26] = cleanTextForExcel(m.autor_usuario || ""); // AA
         }
 
         if (isMaster && rowData) {
