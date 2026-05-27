@@ -15,8 +15,7 @@ const idbStorage: StateStorage = {
 };
 import { Metrado, Partida } from '../types';
 import { supabase } from '../lib/supabase';
-import { mockPartidas } from '../data/mockDB_1';
-import { mockPartidasContingencia } from '../data/mockDB_contingencia';
+
 import { usePersonalStore } from './usePersonalStore';
 import { getEspecialidadPorCodigo } from '../constants/especialidades';
 import { useAuthStore } from './useAuthStore';
@@ -487,8 +486,7 @@ export const useMetradosStore = create<MetradosState>()(
                     const { data: proyectos, error: errProj } = await supabase.from('proyectos').select('id, codigo') as any;
                     
                     if (errProj || !proyectos || proyectos.length === 0) {
-                        console.warn('Fallback V5: Usando mock JSON porque no hay proyectos en BD');
-                        set({ catalogoHospital: mockPartidas, catalogoContingencia: mockPartidasContingencia as Partida[] });
+                        console.warn('No hay proyectos en BD o falló la conexión.');
                         return;
                     }
 
@@ -562,15 +560,9 @@ export const useMetradosStore = create<MetradosState>()(
                     let hosp = mapPartidas(allCatalogo.filter((c: any) => c.proyecto_id === hospId));
                     let cont = mapPartidas(allCatalogo.filter((c: any) => c.proyecto_id === contId));
 
-                    const mergeWithMock = (dbItems: Partida[], mockItems: Partida[]): Partida[] => {
-                        const existingCodes = new Set(dbItems.map(p => p.codigo));
-                        const uniqueMocks = mockItems.filter(p => !existingCodes.has(p.codigo));
-                        return [...dbItems, ...uniqueMocks];
-                    };
-
                     set({ 
-                        catalogoHospital: mergeWithMock(hosp, mockPartidas),
-                        catalogoContingencia: mergeWithMock(cont, mockPartidasContingencia as Partida[])
+                        catalogoHospital: hosp,
+                        catalogoContingencia: cont
                     });
                 } catch (e) {
                     console.error('Error cargando catálogo maestro (Masivo V16):', e);
