@@ -31,7 +31,8 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
     const filteredPersonal = useMemo(() => {
         let options = personal;
 
-        // Filtro por especialidad
+        // Filtro por especialidad (Comentado para permitir seleccionar obreros de cualquier especialidad)
+        /*
         if (especialidad && especialidad !== 'TODAS') {
             const oficiosPermitidos = getOficiosPorEspecialidad(especialidad);
             options = options.filter(p => {
@@ -49,6 +50,7 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
                 return false;
             });
         }
+        */
 
         // Filtro por nombre (búsqueda)
         if (search) {
@@ -92,7 +94,7 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
                         setIsOpen(true);
                     }}
                     onFocus={() => setIsOpen(true)}
-                    placeholder={`Buscar obrero por nombre... (${especialidad})`}
+                    placeholder="Buscar obrero por nombre o DNI..."
                     className="w-full pl-8 pr-3 py-2 bg-white border border-blue-200 rounded-xl text-[11px] font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all placeholder:font-normal placeholder:text-slate-400 h-9"
                 />
             </div>
@@ -102,7 +104,7 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
                 <div className="absolute top-10 left-0 w-full z-50 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1">
                     {filteredPersonal.length === 0 ? (
                         <div className="p-4 text-center text-[11px] font-bold text-slate-400">
-                            No se encontraron obreros disponibles para esta especialidad.
+                            No se encontraron obreros.
                         </div>
                     ) : (
                         <div className="p-1">
