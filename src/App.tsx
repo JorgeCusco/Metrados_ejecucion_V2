@@ -115,7 +115,18 @@ function App() {
         return;
     }
 
-    const final = { ...metradoOriginal, [field]: value };
+    // Cast numerical inputs to avoid string pollution in the database and store!
+    let finalValue = value;
+    if (['cantidad', 'longitud_area', 'ancho_empalme', 'altura_gancho', 'nro_veces'].includes(field as string)) {
+        if (value === '' || value === null || value === undefined) {
+            finalValue = '';
+        } else {
+            const parsed = Number(value);
+            finalValue = isNaN(parsed) ? '' : parsed;
+        }
+    }
+
+    const final = { ...metradoOriginal, [field]: finalValue };
     const calculusFields = ['cantidad', 'longitud_area', 'ancho_empalme', 'altura_gancho', 'nro_veces', 'diametro', 'hvac_factor'];
     
     if (calculusFields.includes(field as string)) {
@@ -137,9 +148,9 @@ function App() {
 
       const t = calcularTotal(p, final.nro_veces);
 
-      updateMetrado(id, { [field]: value, parcial: p, total: t });
+      updateMetrado(id, { [field]: finalValue, parcial: p, total: t });
     } else {
-      updateMetrado(id, { [field]: value });
+      updateMetrado(id, { [field]: finalValue });
     }
   }, [metrados, updateMetrado]);
 

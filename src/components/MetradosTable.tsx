@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import type { Metrado, Partida } from '../types';
 import { Download, Trash2, Loader2, Users } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -177,22 +177,113 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
     const meta = { hvacItemType: r.hvac_item_type };
     const cuadrillaResumen = getCuadrillaLabel(r.obreros_ids, personal);
 
+    // Local states for inputs to avoid key-by-key database updates and lag
+    const [fecha, setFecha] = useState(r.fecha || '');
+    const [frente, setFrente] = useState(r.frente || '');
+    const [bloque, setBloque] = useState(r.bloque || '');
+    const [nivel, setNivel] = useState(r.nivel || '');
+    const [elemento, setElemento] = useState(r.elemento || '');
+    const [detalle, setDetalle] = useState(r.detalle || '');
+    
+    const [cantidad, setCantidad] = useState(r.cantidad || '');
+    const [longitudArea, setLongitudArea] = useState(r.longitud_area || '');
+    const [anchoEmpalme, setAnchoEmpalme] = useState(r.ancho_empalme || '');
+    const [alturaGancho, setAlturaGancho] = useState(r.altura_gancho || '');
+    const [nroVeces, setNroVeces] = useState(r.nro_veces || '');
+
+    const [focusedField, setFocusedField] = useState<string | null>(null);
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const deleteConfirmRef = useRef<HTMLDivElement>(null);
+
+    // Keep local state in sync with prop changes (e.g. if updated from outside or after calculations)
+    useEffect(() => {
+        if (focusedField !== 'fecha') setFecha(r.fecha || '');
+        if (focusedField !== 'frente') setFrente(r.frente || '');
+        if (focusedField !== 'bloque') setBloque(r.bloque || '');
+        if (focusedField !== 'nivel') setNivel(r.nivel || '');
+        if (focusedField !== 'elemento') setElemento(r.elemento || '');
+        if (focusedField !== 'detalle') setDetalle(r.detalle || '');
+        if (focusedField !== 'cantidad') setCantidad(r.cantidad || '');
+        if (focusedField !== 'longitud_area') setLongitudArea(r.longitud_area || '');
+        if (focusedField !== 'ancho_empalme') setAnchoEmpalme(r.ancho_empalme || '');
+        if (focusedField !== 'altura_gancho') setAlturaGancho(r.altura_gancho || '');
+        if (focusedField !== 'nro_veces') setNroVeces(r.nro_veces || '');
+    }, [r, focusedField]);
+
+    const handleFieldBlur = (field: string, value: any) => {
+        let finalValue = value;
+        // Si el valor numérico termina en punto (ej. "15."), lo normalizamos a número
+        if (typeof value === 'string' && value.endsWith('.')) {
+            finalValue = value.slice(0, -1);
+        }
+        
+        // Solo trigger update si el valor realmente cambió
+        const originalValue = r[field] === undefined ? '' : String(r[field]);
+        if (originalValue !== String(finalValue)) {
+            onUpdate?.(r.id, field, finalValue);
+        }
+    };
+
+    // Cerrar el globo de confirmación si hace click afuera
+    useEffect(() => {
+        if (!showDeleteConfirm) return;
+        const handleOutsideClick = (e: MouseEvent) => {
+            if (deleteConfirmRef.current && !deleteConfirmRef.current.contains(e.target as Node)) {
+                setShowDeleteConfirm(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [showDeleteConfirm]);
+
+    // Permitir confirmar borrado con la tecla 'Enter' globalmente mientras esté abierto
+    useEffect(() => {
+        if (!showDeleteConfirm) return;
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                onDelete?.(r.id);
+                setShowDeleteConfirm(false);
+            } else if (e.key === 'Escape') {
+                setShowDeleteConfirm(false);
+            }
+        };
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [showDeleteConfirm, onDelete, r.id]);
+
     return (
         <tr className="hover:bg-blue-50/20 border-b border-slate-100 group" title={r.created_at ? `Subido el: ${new Date(r.created_at).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}` : 'Registro sin hora de subida'}>
             <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden">
                 <input type="date" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-400 font-bold text-[9px] uppercase tracking-tighter ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                    value={r.fecha} onChange={(e) => onUpdate?.(r.id, 'fecha', e.target.value)}
-                    onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
+                    value={fecha} 
+                    onChange={(e) => setFecha(e.target.value)}
+                    onFocus={(e) => { setFocusedField('fecha'); e.target.select(); }}
+                    onBlur={(e) => { setFocusedField(null); handleFieldBlur('fecha', e.target.value); }}
+                    readOnly={isReadOnly} disabled={isReadOnly} />
             </td>
             <td className="w-[105px] min-w-[105px] px-0.5 py-1.5">
                 <div className="flex items-center justify-center gap-0.5">
                     <div className="w-1 min-w-[4px] h-1 rounded-full bg-slate-300 shrink-0"></div>
                     <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                        value={r.frente} onChange={(e) => onUpdate?.(r.id, 'frente', e.target.value)} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
+                        value={frente} 
+                        onChange={(e) => setFrente(e.target.value)}
+                        onFocus={(e) => { setFocusedField('frente'); e.target.select(); }}
+                        onBlur={(e) => { setFocusedField(null); handleFieldBlur('frente', e.target.value); }}
+                        readOnly={isReadOnly} disabled={isReadOnly} />
                     <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                        value={r.bloque} onChange={(e) => onUpdate?.(r.id, 'bloque', e.target.value)} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
+                        value={bloque} 
+                        onChange={(e) => setBloque(e.target.value)}
+                        onFocus={(e) => { setFocusedField('bloque'); e.target.select(); }}
+                        onBlur={(e) => { setFocusedField(null); handleFieldBlur('bloque', e.target.value); }}
+                        readOnly={isReadOnly} disabled={isReadOnly} />
                     <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                        value={r.nivel} onChange={(e) => onUpdate?.(r.id, 'nivel', e.target.value)} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
+                        value={nivel} 
+                        onChange={(e) => setNivel(e.target.value)}
+                        onFocus={(e) => { setFocusedField('nivel'); e.target.select(); }}
+                        onBlur={(e) => { setFocusedField(null); handleFieldBlur('nivel', e.target.value); }}
+                        readOnly={isReadOnly} disabled={isReadOnly} />
                 </div>
             </td>
             <td className="px-1 py-1.5">
@@ -201,10 +292,18 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                         value={r.cuadrilla || ''} readOnly />
                     {r.elemento && <span className="text-blue-400 font-black text-[12px] shrink-0">↳</span>}
                     <input type="text" className={`metrado-input w-20 bg-blue-50/50 border border-blue-100 px-1.5 py-0.5 rounded focus:ring-1 focus:ring-blue-500/30 text-blue-800 text-[10px] font-bold uppercase shrink-0 text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                        value={r.elemento || ''} onChange={(e) => onUpdate?.(r.id, 'elemento', e.target.value.toUpperCase())} onFocus={(e) => e.target.select()} readOnly={isReadOnly} disabled={isReadOnly} />
+                        value={elemento} 
+                        onChange={(e) => setElemento(e.target.value.toUpperCase())}
+                        onFocus={(e) => { setFocusedField('elemento'); e.target.select(); }}
+                        onBlur={(e) => { setFocusedField(null); handleFieldBlur('elemento', e.target.value.toUpperCase()); }}
+                        readOnly={isReadOnly} disabled={isReadOnly} />
                     <div className="relative flex-1 flex flex-row items-center w-full min-w-0">
                         <input type="text" className={`metrado-input w-full bg-transparent border-none p-0 focus:ring-0 text-slate-700 text-[11px] font-medium ${isReadOnly ? 'cursor-default opacity-70' : ''} ${cuadrillaResumen ? 'pr-[65px]' : ''}`}
-                            value={r.detalle || ''} onChange={(e) => onUpdate?.(r.id, 'detalle', e.target.value)} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />
+                            value={detalle} 
+                            onChange={(e) => setDetalle(e.target.value)}
+                            onFocus={() => setFocusedField('detalle')}
+                            onBlur={(e) => { setFocusedField(null); handleFieldBlur('detalle', e.target.value); }}
+                            onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />
                         {cuadrillaResumen && (
                             <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] font-bold text-blue-600 font-mono tracking-tighter bg-blue-50/90 border border-blue-100 px-1 py-0.5 rounded shadow-sm opacity-90 pointer-events-none whitespace-nowrap">
                                 {cuadrillaResumen}
@@ -219,28 +318,53 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('cantidad', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                title={r.cantidad?.toString()} value={r.cantidad} onChange={(e) => onUpdate?.(r.id, 'cantidad', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={cantidad?.toString()} 
+                                value={cantidad} 
+                                onChange={(e) => setCantidad(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
+                                onFocus={(e) => { setFocusedField('cantidad'); e.target.select(); }}
+                                onBlur={(e) => { setFocusedField(null); handleFieldBlur('cantidad', e.target.value); }}
+                                onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('longitud_area', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                title={r.longitud_area?.toString()} value={r.longitud_area} onChange={(e) => onUpdate?.(r.id, 'longitud_area', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={longitudArea?.toString()} 
+                                value={longitudArea} 
+                                onChange={(e) => setLongitudArea(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
+                                onFocus={(e) => { setFocusedField('longitud_area'); e.target.select(); }}
+                                onBlur={(e) => { setFocusedField(null); handleFieldBlur('longitud_area', e.target.value); }}
+                                onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('ancho_empalme', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                title={r.ancho_empalme?.toString()} value={r.ancho_empalme} onChange={(e) => onUpdate?.(r.id, 'ancho_empalme', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={anchoEmpalme?.toString()} 
+                                value={anchoEmpalme} 
+                                onChange={(e) => setAnchoEmpalme(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
+                                onFocus={(e) => { setFocusedField('ancho_empalme'); e.target.select(); }}
+                                onBlur={(e) => { setFocusedField(null); handleFieldBlur('ancho_empalme', e.target.value); }}
+                                onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('altura_gancho', meta) ? <span className="text-[9px] font-bold text-slate-300">N/A</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-600 text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                title={r.altura_gancho?.toString()} value={r.altura_gancho} onChange={(e) => onUpdate?.(r.id, 'altura_gancho', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={alturaGancho?.toString()} 
+                                value={alturaGancho} 
+                                onChange={(e) => setAlturaGancho(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
+                                onFocus={(e) => { setFocusedField('altura_gancho'); e.target.select(); }}
+                                onBlur={(e) => { setFocusedField(null); handleFieldBlur('altura_gancho', e.target.value); }}
+                                onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                     <td className="px-2 py-1.5 text-center font-semibold text-slate-500 text-[11px] border-l border-slate-200/60">{formatNumber(r.parcial)}</td>
                     <td className="px-1 py-1.5 text-center border-l border-slate-200/60">
                         {strategy.isFieldLocked('nro_veces', meta) ? <span className="text-[9px] font-bold text-slate-300">1</span> :
                             <input type="text" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-500 font-bold text-[11px] ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
-                                title={r.nro_veces?.toString()} value={r.nro_veces} onChange={(e) => onUpdate?.(r.id, 'nro_veces', e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))} onFocus={(e) => e.target.select()} onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
+                                title={nroVeces?.toString()} 
+                                value={nroVeces} 
+                                onChange={(e) => setNroVeces(e.target.value.replace(/,/g, '.').replace(/[^0-9.-]/g, ''))}
+                                onFocus={(e) => { setFocusedField('nro_veces'); e.target.select(); }}
+                                onBlur={(e) => { setFocusedField(null); handleFieldBlur('nro_veces', e.target.value); }}
+                                onKeyDown={handleKeyDown} readOnly={isReadOnly} disabled={isReadOnly} />}
                     </td>
                 </>
             ) : (
@@ -255,9 +379,38 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                 <div className="flex items-center justify-end gap-1.5">
                     <span>{r.total.toFixed(2)}</span>
                     {!isReadOnly && (
-                        <button onClick={() => onDelete?.(r.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 p-1 rounded-md transition-all">
-                            <Trash2 size={12} />
-                        </button>
+                        <div className="relative" ref={deleteConfirmRef}>
+                            <button 
+                                onClick={() => setShowDeleteConfirm(true)} 
+                                className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 p-1 rounded-md transition-all cursor-pointer"
+                                title="Borrar metrado"
+                            >
+                                <Trash2 size={12} />
+                            </button>
+                            {showDeleteConfirm && (
+                                <div className="absolute right-0 bottom-6 z-[300] bg-white border border-slate-200 shadow-xl rounded-xl p-2 flex flex-col gap-1.5 min-w-[110px] animate-in fade-in zoom-in duration-100">
+                                    <span className="text-[9px] font-black text-slate-700 text-center uppercase tracking-tight">¿Borrar?</span>
+                                    <div className="flex gap-1 justify-center">
+                                        <button 
+                                            onClick={() => {
+                                                onDelete?.(r.id);
+                                                setShowDeleteConfirm(false);
+                                            }}
+                                            className="px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white text-[8px] font-black rounded shadow-sm cursor-pointer uppercase"
+                                            title="Confirmar borrado (Enter)"
+                                        >
+                                            Sí
+                                        </button>
+                                        <button 
+                                            onClick={() => setShowDeleteConfirm(false)}
+                                            className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[8px] font-black rounded shadow-sm border border-slate-200 cursor-pointer uppercase"
+                                        >
+                                            No
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </td>
@@ -697,8 +850,11 @@ export const MetradosTable = React.memo(({
         if (isReadOnly) return;
         if (e.key === 'Enter') {
             e.preventDefault();
+            const target = e.target as HTMLInputElement;
+            target.blur(); // Forces onBlur to fire and save!
+            
             const inputs = Array.from(document.querySelectorAll('.metrado-input')) as HTMLInputElement[];
-            const currentIndex = inputs.indexOf(e.target as HTMLInputElement);
+            const currentIndex = inputs.indexOf(target);
             if (currentIndex > -1 && currentIndex < inputs.length - 1) {
                 inputs[currentIndex + 1].focus();
                 inputs[currentIndex + 1].select();
