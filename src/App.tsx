@@ -357,7 +357,7 @@ function App() {
 
         {/* Left Column: Form (Solo si no está colapsado y no es solo lectura) */}
         {isFormVisible && !isReadOnly && (
-          <div className="lg:col-span-4 xl:col-span-3 transition-all animate-in slide-in-from-left duration-300">
+          <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-6 lg:max-h-[calc(100vh-60px)] lg:self-start overflow-y-auto scrollbar-thin transition-all animate-in slide-in-from-left duration-300 pr-1">
             <MetradosForm
               state={state}
               actions={actions}
