@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { usePersonalStore } from '../../store/usePersonalStore';
-import { getOficiosPorEspecialidad } from '../../constants/especialidades';
+// import { getOficiosPorEspecialidad } from '../../constants/especialidades';
 import { X, UserPlus, Search } from 'lucide-react';
 import type { Personal } from '../../store/usePersonalStore';
 
