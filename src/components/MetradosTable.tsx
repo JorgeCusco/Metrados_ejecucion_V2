@@ -967,7 +967,7 @@ export const MetradosTable = React.memo(({
 
             <div
                 ref={parentRef}
-                className="overflow-auto flex-grow max-h-[calc(100vh-220px)] lg:max-h-none lg:h-0 scrollbar-thin scrollbar-thumb-slate-200"
+                className="overflow-auto flex-grow max-h-[calc(100vh-230px)] scrollbar-thin scrollbar-thumb-slate-200"
             >
                 <table className="w-full text-[11px] text-left align-middle border-collapse table-auto">
                     <thead className="text-[11px] text-slate-400 bg-white uppercase whitespace-nowrap sticky top-0 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] z-10 font-bold">

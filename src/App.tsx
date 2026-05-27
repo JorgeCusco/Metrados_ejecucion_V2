@@ -195,7 +195,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden p-4 md:p-6 lg:p-8 flex flex-col gap-6 relative w-full max-w-full mx-auto">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8 flex flex-col gap-6 relative w-full max-w-full mx-auto">
 
       {/* Header */}
       <header className="flex flex-col md:flex-row items-center justify-between px-2 gap-4">
@@ -353,11 +353,11 @@ function App() {
 
 
       {/* Main Layout Grid */}
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[70vh] lg:min-h-0 lg:h-0">
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[70vh]">
 
         {/* Left Column: Form (Solo si no está colapsado y no es solo lectura) */}
         {isFormVisible && !isReadOnly && (
-          <div className="lg:col-span-4 xl:col-span-3 lg:h-full lg:overflow-y-auto scrollbar-thin transition-all animate-in slide-in-from-left duration-300 pr-1">
+          <div className="lg:col-span-4 xl:col-span-3 transition-all animate-in slide-in-from-left duration-300">
             <MetradosForm
               state={state}
               actions={actions}
@@ -368,7 +368,7 @@ function App() {
         )}
 
         {/* Right Column: Table History */}
-        <div className={`${isFormVisible && !isReadOnly ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-12'} flex flex-col lg:h-full transition-all duration-300`}>
+        <div className={`${isFormVisible && !isReadOnly ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-12'} flex flex-col self-start transition-all duration-300 w-full`}>
           <MetradosTable
             metrados={metradosFiltrados}
             onUpdate={handleUpdateMetrado}
