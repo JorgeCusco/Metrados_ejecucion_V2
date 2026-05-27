@@ -292,8 +292,8 @@ function App() {
             </button>
           )}
 
-          {/* Dashboard Ejecutivo PowerBI */}
-          {user && (useAuthStore.getState().isGerencia()) && (
+          {/* Dashboard Ejecutivo PowerBI - Temporarily hidden */}
+          {/* {user && (useAuthStore.getState().isGerencia()) && (
             <button 
               onClick={() => setShowExecutiveDashboard(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-[#005A9C] hover:bg-[#004A81] text-white rounded-md text-sm font-bold transition-all shadow-sm"
@@ -302,7 +302,7 @@ function App() {
               <FileBarChart className="w-4 h-4 opacity-70" />
               <span className="hidden sm:inline text-xs opacity-80">Dashboard</span>
             </button>
-          )}
+          )} */}
 
           {/* Botón Maestro (Solo para Administradores de Presupuesto) */}
           {isAdminPresupuesto() && (
