@@ -195,7 +195,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden p-4 md:p-6 lg:p-8 flex flex-col gap-6 relative w-full max-w-full mx-auto">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden p-3 md:p-4 lg:p-4 flex flex-col gap-4 relative w-full max-w-full mx-auto">
 
       {/* Header */}
       <header className="flex flex-col md:flex-row items-center justify-between px-2 gap-4">
@@ -353,7 +353,7 @@ function App() {
 
 
       {/* Main Layout Grid */}
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[70vh] lg:min-h-0 lg:h-0">
+      <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-4 lg:h-[calc(100vh-115px)] min-h-[70vh] lg:min-h-0">
 
         {/* Left Column: Form (Solo si no está colapsado y no es solo lectura) */}
         {isFormVisible && !isReadOnly && (
