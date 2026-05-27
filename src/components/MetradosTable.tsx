@@ -933,7 +933,7 @@ export const MetradosTable = React.memo(({
                                 className="text-[10px] font-black bg-transparent border-none outline-none text-slate-600 cursor-pointer focus:ring-0 px-0.5"
                                 title="Ordenar metrados dentro de cada partida"
                             >
-                                <option value="asc">⏳ Antiguos primero</option>
+                                <option value="asc">⚙️ Estándar / Normal</option>
                                 <option value="desc">⏱️ Recientes primero</option>
                             </select>
                         </div>
