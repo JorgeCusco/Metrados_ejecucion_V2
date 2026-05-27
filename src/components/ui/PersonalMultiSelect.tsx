@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { usePersonalStore } from '../../store/usePersonalStore';
-// import { getOficiosPorEspecialidad } from '../../constants/especialidades';
+import { getOficiosPorEspecialidad } from '../../constants/especialidades';
 import { X, UserPlus, Search } from 'lucide-react';
 import type { Personal } from '../../store/usePersonalStore';
 
@@ -15,6 +15,7 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
     const [search, setSearch] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [showAll, setShowAll] = useState(false);
 
     // Cerrar si hace click afuera
     useEffect(() => {
@@ -31,9 +32,8 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
     const filteredPersonal = useMemo(() => {
         let options = personal;
 
-        // Filtro por especialidad (Comentado para permitir seleccionar obreros de cualquier especialidad)
-        /*
-        if (especialidad && especialidad !== 'TODAS') {
+        // Si showAll es falso, aplicamos el filtro por especialidad tradicional
+        if (!showAll && especialidad && especialidad !== 'TODAS') {
             const oficiosPermitidos = getOficiosPorEspecialidad(especialidad);
             options = options.filter(p => {
                 // 1. Prioridad: Coincidencia directa de la columna 'especialidad' en la BD
@@ -50,7 +50,6 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
                 return false;
             });
         }
-        */
 
         // Filtro por nombre (búsqueda)
         if (search) {
@@ -63,7 +62,7 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
 
         // Excluir los que ya están seleccionados
         return options.filter(p => !selectedIds.includes(p.id)).slice(0, 30); // Max 30 para rendimiento
-    }, [personal, especialidad, search, selectedIds]);
+    }, [personal, especialidad, search, selectedIds, showAll]);
 
     const selectedPersonal = useMemo(() => {
         return selectedIds.map(id => personal.find(p => p.id === id)).filter(Boolean) as Personal[];
@@ -90,14 +89,36 @@ export const PersonalMultiSelect: React.FC<PersonalMultiSelectProps> = ({ especi
                     type="text"
                     value={search}
                     onChange={(e) => {
-                        setSearch(e.target.value);
-                        setIsOpen(true);
+                       setSearch(e.target.value);
+                       setIsOpen(true);
                     }}
                     onFocus={() => setIsOpen(true)}
-                    placeholder="Buscar obrero por nombre o DNI..."
+                    placeholder={showAll ? "Buscar en todo el personal (780)..." : `Buscar obrero de ${especialidad}...`}
                     className="w-full pl-8 pr-3 py-2 bg-white border border-blue-200 rounded-xl text-[11px] font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all placeholder:font-normal placeholder:text-slate-400 h-9"
                 />
             </div>
+
+            {/* Switch para Mostrar todo el personal */}
+            {especialidad && especialidad !== 'TODAS' && (
+                <div className="flex items-center justify-between px-1.5 py-0.5 bg-slate-50 border border-slate-200/60 rounded-xl">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                            type="checkbox" 
+                            checked={showAll}
+                            onChange={(e) => setShowAll(e.target.checked)}
+                            className="w-3.5 h-3.5 rounded border-blue-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            Ver todas las especialidades
+                        </span>
+                    </label>
+                    {showAll && (
+                        <span className="text-[9px] font-bold text-blue-600 italic">
+                            {personal.length} obreros libres
+                        </span>
+                    )}
+                </div>
+            )}
 
             {/* Dropdown de opciones */}
             {isOpen && (
