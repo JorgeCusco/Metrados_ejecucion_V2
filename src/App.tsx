@@ -165,11 +165,6 @@ function App() {
     }
   }, [isReadOnly, actions, hasShownReadOnlyNotice]);
 
-  // Si no está autenticado, mostramos pantalla de Login
-  if (!isAuthenticated || !user) {
-    return <Login />;
-  }
-
   // Filtra los metrados mostrados según el proyecto activo y el Aislamiento Lógico
   const metradosFiltrados = useMemo(() => {
     return metrados.filter(m => {
@@ -193,6 +188,11 @@ function App() {
       }
     });
   }, [metrados, context.proyecto, context.isModoPC]);
+
+  // Si no está autenticado, mostramos pantalla de Login
+  if (!isAuthenticated || !user) {
+    return <Login />;
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8 flex flex-col gap-6 relative max-w-[1450px] mx-auto">
