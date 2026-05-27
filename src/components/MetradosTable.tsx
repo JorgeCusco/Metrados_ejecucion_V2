@@ -811,7 +811,8 @@ export const MetradosTable = React.memo(({
                             {isExporting ? 'Exportando...' : 'Exportar Oficial'}
                         </button>
 
-                        <button
+                        {/* Temporarily hidden Exportar Maestro button */}
+                        {/* <button
                             onClick={() => exportToExcel('master')}
                             disabled={isExporting}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm cursor-pointer ${isExporting
@@ -821,7 +822,7 @@ export const MetradosTable = React.memo(({
                         >
                             {isExporting ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
                             {isExporting ? 'Exportando...' : 'Exportar Maestro'}
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
