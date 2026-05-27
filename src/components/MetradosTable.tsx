@@ -178,7 +178,7 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
     const cuadrillaResumen = getCuadrillaLabel(r.obreros_ids, personal);
 
     return (
-        <tr className="hover:bg-blue-50/20 border-b border-slate-100 group">
+        <tr className="hover:bg-blue-50/20 border-b border-slate-100 group" title={r.created_at ? `Subido el: ${new Date(r.created_at).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}` : 'Registro sin hora de subida'}>
             <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden">
                 <input type="date" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-400 font-bold text-[9px] uppercase tracking-tighter ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
                     value={r.fecha} onChange={(e) => onUpdate?.(r.id, 'fecha', e.target.value)}
@@ -272,7 +272,7 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
  * @param isSummaryMode Si es true, omite el detalle de registros y agrupadores.
  * @param maxLevel Nivel máximo de jerarquía a mostrar (ej. 1 para OE.1, 2 para OE.1.1). null para mostrar todo.
  */
-const getHierarchicalRows = (activeMetrados: Metrado[], partidasCatalogo: Partida[], isSummaryMode: boolean = false, maxLevel: number | null = null): any[] => {
+const getHierarchicalRows = (activeMetrados: Metrado[], partidasCatalogo: Partida[], isSummaryMode: boolean = false, maxLevel: number | null = null, sortOrder: 'asc' | 'desc' = 'asc'): any[] => {
     // 1. Identificar IDs activos de los metrados (UUID de catalogo, UUID custom, o fallback a código)
     const getMetradoTargetId = (m: Metrado) => m.custom_partida_id || m.partida_id || m.codigo_partida.trim().toUpperCase();
 
@@ -347,7 +347,11 @@ const getHierarchicalRows = (activeMetrados: Metrado[], partidasCatalogo: Partid
         (metradosGrouped.get(nodeId) || []).forEach(m => relatedMap.set(m.id, m));
         (metradosGrouped.get(nodeLegacyCode) || []).forEach(m => relatedMap.set(m.id, m));
         
-        const relatedMetrados = Array.from(relatedMap.values()).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const relatedMetrados = Array.from(relatedMap.values()).sort((a, b) => {
+            const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+        });
 
         // FIX: Los nodos HOJA (!es_titulo) solo se muestran si tienen metrados reales en el periodo actual.
         // Sin este fix, aparecen headers vacíos con solo datos históricos (metrado_anterior_acumulado)
@@ -619,6 +623,7 @@ export const MetradosTable = React.memo(({
     const [isExporting, setIsExporting] = React.useState(false);
     const [showCostView, setShowCostView] = React.useState(false);
     const [viewMode, setViewMode] = React.useState<'DETALLE' | 'SUMMARY' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6'>('DETALLE');
+    const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
 
     // Mapeo automático de Modo -> Summary y MaxLevel
     const { isSummaryActual, maxLevelActual } = useMemo(() => {
@@ -631,7 +636,7 @@ export const MetradosTable = React.memo(({
         return { isSummaryActual: false, maxLevelActual: null };
     }, [viewMode]);
 
-    const rows = useMemo(() => getHierarchicalRows(filteredMetrados, catalogoActivo, isSummaryActual, maxLevelActual), [filteredMetrados, catalogoActivo, isSummaryActual, maxLevelActual]);
+    const rows = useMemo(() => getHierarchicalRows(filteredMetrados, catalogoActivo, isSummaryActual, maxLevelActual, sortOrder), [filteredMetrados, catalogoActivo, isSummaryActual, maxLevelActual, sortOrder]);
 
     // VIRTUALIZACIÓN: Referencia al contenedor con scroll
     const parentRef = React.useRef<HTMLDivElement>(null);
@@ -919,6 +924,20 @@ export const MetradosTable = React.memo(({
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* Orden de los registros */}
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded-lg border border-slate-200 shadow-sm">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Orden</span>
+                            <select
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                                className="text-[10px] font-black bg-transparent border-none outline-none text-slate-600 cursor-pointer focus:ring-0 px-0.5"
+                                title="Ordenar metrados dentro de cada partida"
+                            >
+                                <option value="asc">⏳ Antiguos primero</option>
+                                <option value="desc">⏱️ Recientes primero</option>
+                            </select>
+                        </div>
+
                         {/* Selector de Vista (Jerarquía) */}
                         <div className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50/50 rounded-lg border border-blue-100 shadow-sm">
                             <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Vista</span>

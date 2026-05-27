@@ -251,6 +251,7 @@ export const useMetradosStore = create<MetradosState>()(
                                     .from(tableName)
                                     .select(selectQuery)
                                     .order('fecha', { ascending: false })
+                                    .order('created_at', { ascending: false })
                                     .range(fromRange, toRange)
                             );
                         }
