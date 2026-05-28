@@ -256,9 +256,10 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
     }, [showDeleteConfirm, onDelete, r.id]);
 
     return (
-        <tr className="hover:bg-blue-50/20 border-b border-slate-100 group" title={r.created_at ? `Subido el: ${new Date(r.created_at).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}` : 'Registro sin hora de subida'}>
+        <tr className="hover:bg-blue-50/20 border-b border-slate-100 group">
             <td className="w-[65px] min-w-[65px] max-w-[60px] px-1 py-1.5 text-center overflow-hidden">
                 <input type="date" className={`metrado-input w-full text-center bg-transparent border-none p-0 focus:ring-0 text-slate-400 font-bold text-[9px] uppercase tracking-tighter ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                    title={fecha}
                     value={fecha} 
                     onChange={(e) => setFecha(e.target.value)}
                     onFocus={(e) => { setFocusedField('fecha'); e.target.select(); }}
@@ -269,18 +270,21 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                 <div className="flex items-center justify-center gap-0.5">
                     <div className="w-1 min-w-[4px] h-1 rounded-full bg-slate-300 shrink-0"></div>
                     <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={frente}
                         value={frente} 
                         onChange={(e) => setFrente(e.target.value)}
                         onFocus={(e) => { setFocusedField('frente'); e.target.select(); }}
                         onBlur={(e) => { setFocusedField(null); handleFieldBlur('frente', e.target.value); }}
                         readOnly={isReadOnly} disabled={isReadOnly} />
                     <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={bloque}
                         value={bloque} 
                         onChange={(e) => setBloque(e.target.value)}
                         onFocus={(e) => { setFocusedField('bloque'); e.target.select(); }}
                         onBlur={(e) => { setFocusedField(null); handleFieldBlur('bloque', e.target.value); }}
                         readOnly={isReadOnly} disabled={isReadOnly} />
                     <input type="text" className={`metrado-input text-[8px] text-slate-600 font-medium uppercase bg-slate-100 border border-slate-200 px-0.5 py-0.5 rounded shrink-0 w-[26px] text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={nivel}
                         value={nivel} 
                         onChange={(e) => setNivel(e.target.value)}
                         onFocus={(e) => { setFocusedField('nivel'); e.target.select(); }}
@@ -291,9 +295,11 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
             <td className="px-1 py-1.5">
                 <div className="flex items-center gap-1.5 w-full">
                     <input type="text" className="metrado-input w-12 bg-slate-200/90 border border-slate-300 px-1 py-0.5 rounded text-slate-500 text-[9px] font-black uppercase shrink-0 text-center"
+                        title={r.cuadrilla || ''}
                         value={r.cuadrilla || ''} readOnly />
                     {r.elemento && <span className="text-blue-400 font-black text-[12px] shrink-0">↳</span>}
                     <input type="text" className={`metrado-input w-20 bg-blue-50/50 border border-blue-100 px-1.5 py-0.5 rounded focus:ring-1 focus:ring-blue-500/30 text-blue-800 text-[10px] font-bold uppercase shrink-0 text-center ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                        title={elemento}
                         value={elemento} 
                         onChange={(e) => setElemento(e.target.value.toUpperCase())}
                         onFocus={(e) => { setFocusedField('elemento'); e.target.select(); }}
@@ -301,6 +307,7 @@ const RecordRow = React.memo(({ r, onUpdate, onDelete, showCostView, formatNumbe
                         readOnly={isReadOnly} disabled={isReadOnly} />
                     <div className="relative flex-1 flex flex-row items-center w-full min-w-0">
                         <input type="text" className={`metrado-input w-full bg-transparent border-none p-0 focus:ring-0 text-slate-700 text-[11px] font-medium ${isReadOnly ? 'cursor-default opacity-70' : ''} ${cuadrillaResumen ? 'pr-[65px]' : ''}`}
+                            title={detalle}
                             value={detalle} 
                             onChange={(e) => setDetalle(e.target.value)}
                             onFocus={() => setFocusedField('detalle')}
