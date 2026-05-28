@@ -105,6 +105,10 @@ export const useMetradosForm = () => {
     const limpiarCampos = (totalReset: boolean = false) => {
         if (totalReset) {
             setElemento('');
+            setContext({ cuadrilla: '', obreros_ids: [] });
+        } else {
+            // Limpiar obligatoriamente la selección de obreros tras guardar el registro
+            setContext({ obreros_ids: [] });
         }
         setDetalle('');
         setHvacFactor(null);
@@ -197,9 +201,9 @@ export const useMetradosForm = () => {
                     
                     return true;
                 });
-                if (obrerosDeCuadrilla.length > 0) {
-                    setContext({ obreros_ids: obrerosDeCuadrilla.map(p => p.id) });
-                }
+                setContext({ obreros_ids: obrerosDeCuadrilla.map(p => p.id) });
+            } else {
+                setContext({ obreros_ids: [] });
             }
         },
         setObrerosIds: (ids: string[]) => setContext({ obreros_ids: ids }),

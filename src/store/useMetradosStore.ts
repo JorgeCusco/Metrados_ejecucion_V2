@@ -280,17 +280,10 @@ export const useMetradosStore = create<MetradosState>()(
                             .map((rel: any) => rel.trabajador_id)
                             .filter(Boolean);
                         
-                        let personalList = [];
-                        if (personalIds.length === 0 && dbRow.cuadrilla) {
-                            // Fallback legacy para registros antiguos sin bindeo de ID pero con cuadrilla textual
-                            personalList = allPersonal.filter((p: any) => p.cuadrilla?.toUpperCase() === dbRow.cuadrilla.toUpperCase());
-                            obrerosIds = personalList.map((p: any) => p.id);
-                        } else {
-                            obrerosIds = personalIds;
-                            personalList = personalIds
-                                .map((id: string) => allPersonal.find((p: any) => p.id === id))
-                                .filter(Boolean);
-                        }
+                        obrerosIds = personalIds;
+                        const personalList = personalIds
+                            .map((id: string) => allPersonal.find((p: any) => p.id === id))
+                            .filter(Boolean);
 
                         formattedCuadrilla = personalList
                             .map((p: any) => p.categoria ? `${p.nombre_formateado} (${p.categoria})` : p.nombre_formateado)
