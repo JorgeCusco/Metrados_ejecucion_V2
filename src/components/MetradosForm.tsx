@@ -5,7 +5,7 @@ import type { Partida } from '../types';
 import type { TipoProyecto } from '../App';
 import { isAcero, isInstalacion } from '../hooks/useMetradosForm';
 import { ESPECIALIDADES_PARTIDA, getEspecialidadPorCodigo } from '../constants/especialidades';
-import { Save, Eraser, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Save, Eraser, ChevronDown, ChevronUp, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { usePersonalStore } from '../store/usePersonalStore';
 import { useMetradosStore } from '../store/useMetradosStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -17,6 +17,7 @@ interface MetradosFormProps {
     actions: any;
     onGuardar: () => void;
     proyecto: TipoProyecto;
+    onCollapse?: () => void;
 }
 
 export const RenderModificacionBadge = (modificacionStr?: string) => {
@@ -48,7 +49,7 @@ export const RenderModificacionBadge = (modificacionStr?: string) => {
 // @ts-ignore
 window.RenderModificacionBadge = RenderModificacionBadge;
 
-export const MetradosForm: React.FC<MetradosFormProps> = ({ state, actions, onGuardar, proyecto }) => {
+export const MetradosForm: React.FC<MetradosFormProps> = ({ state, actions, onGuardar, proyecto, onCollapse }) => {
     const { personal } = usePersonalStore();
     const { catalogoHospital, catalogoContingencia, metrados, hvacCatalog, fetchHvacCatalog, context } = useMetradosStore();
     const { user } = useAuthStore();
@@ -320,9 +321,20 @@ export const MetradosForm: React.FC<MetradosFormProps> = ({ state, actions, onGu
 
             {/* Cabecera Compacta */}
             <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                <h2 className="text-sm font-bold text-gray-800 tracking-tight uppercase flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-blue-600 rounded-full" /> Registro de Metrados
-                </h2>
+                <div className="flex items-center gap-1">
+                    {onCollapse && (
+                        <button
+                            onClick={onCollapse}
+                            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors cursor-pointer mr-1"
+                            title="Ocultar Registro de Metrados"
+                        >
+                            <ChevronLeft size={16} strokeWidth={3} />
+                        </button>
+                    )}
+                    <h2 className="text-sm font-bold text-gray-800 tracking-tight uppercase flex items-center gap-2">
+                        <div className="w-1.5 h-4 bg-blue-600 rounded-full" /> Registro de Metrados
+                    </h2>
+                </div>
                 <div className="flex items-center gap-3">
                     <input
                         type="date"

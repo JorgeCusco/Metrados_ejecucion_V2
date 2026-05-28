@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import type { Metrado, Partida } from '../types';
-import { Download, Trash2, Loader2, Users } from 'lucide-react';
+import { Download, Trash2, Loader2, Users, ChevronRight } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { RenderModificacionBadge } from './MetradosForm';
 import { useMetradosStore } from '../store/useMetradosStore';
@@ -22,6 +22,8 @@ interface MetradosTableProps {
     onEspecialidadChange?: (val: string) => void;
     isSpecialtyLocked?: boolean;
     isReadOnly?: boolean;
+    isFormVisible?: boolean;
+    onToggleForm?: () => void;
 }
 
 // HELPERS Y CONSTANTES
@@ -629,7 +631,7 @@ const getSpecificMonthRange = (year: number, month: number) => {
 export const MetradosTable = React.memo(({
     metrados, onUpdate, onGroupUpdate, onDelete, proyecto = 'hospital',
     especialidadSeleccionada = 'TODAS', onEspecialidadChange, isSpecialtyLocked,
-    isReadOnly = false
+    isReadOnly = false, isFormVisible, onToggleForm
 }: MetradosTableProps) => {
     const { customPartidas, catalogoHospital, catalogoContingencia } = useMetradosStore();
     const { personal } = usePersonalStore();
@@ -906,6 +908,15 @@ export const MetradosTable = React.memo(({
                 {/* FILA 1: TÍTULO, VISTA, FECHAS Y EXPORTACIÓN */}
                 <div className="flex justify-between items-center w-full">
                     <div className="flex items-center gap-2">
+                        {!isFormVisible && !isReadOnly && onToggleForm && (
+                            <button
+                                onClick={onToggleForm}
+                                className="p-1 hover:bg-slate-100 rounded text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer mr-1 flex items-center justify-center border border-indigo-100 bg-indigo-50/50 shadow-sm"
+                                title="Mostrar Registro de Metrados"
+                            >
+                                <ChevronRight size={14} strokeWidth={3} />
+                            </button>
+                        )}
                         <h3 className="font-bold text-slate-800 text-sm tracking-tight shrink-0">Planilla de Metrados Dinámica</h3>
                         <div className="h-6 w-px bg-slate-200 mx-1" />
 

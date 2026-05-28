@@ -314,7 +314,7 @@ function App() {
               <span className="hidden sm:inline text-xs opacity-80">Dashboard</span>
             </button>
           )} */}
-
+          
           {/* Botón Maestro (Solo para Administradores de Presupuesto) */}
           {isAdminPresupuesto() && (
             <button 
@@ -327,24 +327,6 @@ function App() {
             </button>
           )}
 
-          {!isReadOnly && (
-            <button 
-              onClick={() => {
-                const newVal = !isFormVisible;
-                setIsFormVisible(newVal);
-              }}
-              className={`px-5 py-2.5 flex items-center gap-2 rounded-md text-sm font-bold transition-all shadow-sm border ${
-                isFormVisible 
-                ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                : 'bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-700'
-              }`}
-              title={isFormVisible ? "Ocultar Registro (Vista Completa)" : "Mostrar Registro"}
-            >
-              <ClipboardList className="w-4 h-4" />
-              <span>{isFormVisible ? "Vista Completa" : "Registrar"}</span>
-            </button>
-          )}
-          
           <button 
             onClick={() => logout()}
             className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold border border-red-100 transition-all active:scale-95"
@@ -374,6 +356,7 @@ function App() {
               actions={actions}
               onGuardar={handleGuardar}
               proyecto={context.proyecto}
+              onCollapse={() => setIsFormVisible(false)}
             />
           </div>
         )}
@@ -390,6 +373,8 @@ function App() {
             onEspecialidadChange={actions.setEspecialidadSeleccionada}
             isSpecialtyLocked={state.isSpecialtyLocked}
             isReadOnly={isReadOnly}
+            isFormVisible={isFormVisible}
+            onToggleForm={() => setIsFormVisible(!isFormVisible)}
           />
         </div>
       </main>
