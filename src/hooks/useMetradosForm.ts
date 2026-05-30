@@ -106,9 +106,6 @@ export const useMetradosForm = () => {
         if (totalReset) {
             setElemento('');
             setContext({ cuadrilla: '', obreros_ids: [] });
-        } else {
-            // Limpiar obligatoriamente la selección de obreros tras guardar el registro
-            setContext({ obreros_ids: [] });
         }
         setDetalle('');
         setHvacFactor(null);

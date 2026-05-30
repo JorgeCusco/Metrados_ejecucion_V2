@@ -18,6 +18,18 @@ export const getEspecialidadPorCodigo = (codigo: string): string => {
     if (!codigo) return '';
     const cleanCode = codigo.trim().toUpperCase();
     
+    // 1. Deducir de prefijos autogenerados (PC-ARQ-XXXX, ACT-EST-XXXX)
+    if (cleanCode.includes('-ARQ-')) return 'ARQUITECTURA';
+    if (cleanCode.includes('-EST-')) return 'ESTRUCTURAS';
+    if (cleanCode.includes('-INS-')) return 'INSTALACIONES SANITARIAS';
+    if (cleanCode.includes('-IE-')) return 'ELÉCTRICAS';
+    if (cleanCode.includes('-EM-')) return 'ELECTROMECÁNICAS';
+    if (cleanCode.includes('-SEG-')) return 'SEGURIDAD';
+    if (cleanCode.includes('-PMA-')) return 'PLAN DE MANEJO AMBIENTAL';
+    if (cleanCode.includes('-OP-')) return 'OBRAS PROVISIONALES';
+    if (cleanCode.includes('-COM-')) return 'COMUNICACIONES';
+    if (cleanCode.includes('-EB-')) return 'EQUIPAMIENTO BIOMÉDICO';
+
     let bestMatch = { id: '', length: 0 };
 
     for (const rule of SPECIALTY_RULES) {
@@ -236,9 +248,10 @@ export const isMetradoOfSpecialtyImproved = (
 
             // B) Si el código no es deducible (PC con nomenclatura no estándar),
             // usar el campo 'especialidad' que el usuario asignó explícitamente.
-            // SOLO aplica a PCs para no corromper el catálogo oficial.
-            if (esPartidaPersonalizada && linkedPartida.especialidad && isValidSpecialty(linkedPartida.especialidad)) {
-                const pcSpec = normalizeSpecialty(linkedPartida.especialidad);
+            // Dado que 'partidas' no siempre guarda 'especialidad', hacemos fallback a 'metrado.especialidad'
+            const specToUse = linkedPartida.especialidad || metrado.especialidad;
+            if (esPartidaPersonalizada && specToUse && isValidSpecialty(specToUse)) {
+                const pcSpec = normalizeSpecialty(specToUse);
                 const matches = pcSpec === targetSpecialty;
                 if (debug) console.log(`      ${matches ? '✅' : '❌'} Nivel 2B (PC especialidad explícita: ${pcSpec} vs ${targetSpecialty})`);
                 return matches;
